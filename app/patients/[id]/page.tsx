@@ -19,33 +19,44 @@ function PatientDetailContent() {
   const params = useParams()
   const router = useRouter()
   const patientId = params.id as string
-  
+
   const [patient, setPatient] = useState<PatientRecord | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState<PatientRecord | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const found = getPatientById(patientId)
-    setPatient(found || null)
-    if (found) {
-      setFormData(found)
+    const fetchPatient = async () => {
+      setIsLoading(true)
+      const found = await getPatientById(patientId)
+      setPatient(found || null)
+      if (found) {
+        setFormData(found)
+      }
+      setIsLoading(false)
     }
+    fetchPatient()
   }, [patientId])
 
   const handleSave = async () => {
     if (!formData) return
     setIsSaving(true)
-    
+
+    // Simulate slight delay for UX
     await new Promise(resolve => setTimeout(resolve, 500))
-    
-    const updated = updatePatient(patientId, formData)
-    if (updated) {
-      setPatient(updated)
-      setIsEditing(false)
+
+    try {
+      const updated = await updatePatient(patientId, formData)
+      if (updated) {
+        setPatient(updated)
+        setIsEditing(false)
+      }
+    } catch (e) {
+      console.error('Failed to update patient', e)
+    } finally {
+      setIsSaving(false)
     }
-    
-    setIsSaving(false)
   }
 
   const handleInputChange = (field: keyof PatientRecord, value: any) => {
@@ -55,6 +66,17 @@ function PatientDetailContent() {
         [field]: value,
       })
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center md:ml-0 ml-12">
+          <p className="text-muted-foreground">Loading patient details...</p>
+        </main>
+      </div>
+    )
   }
 
   if (!patient) {
@@ -71,7 +93,7 @@ function PatientDetailContent() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           {/* Header with back button */}

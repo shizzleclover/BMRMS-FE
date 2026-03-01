@@ -1,3 +1,5 @@
+import { fetchApi } from './api'
+
 export interface PatientRecord {
   id: string
   name: string
@@ -15,191 +17,54 @@ export interface PatientRecord {
   syncStatus: 'synced' | 'pending' | 'failed'
 }
 
-// Mock patient data
-const mockPatients: PatientRecord[] = [
-  {
-    id: 'P001',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    phone: '+1-555-0101',
-    dateOfBirth: '1985-03-15',
-    gender: 'F',
-    bloodType: 'O+',
-    address: '123 Main St, New York, NY',
-    medicalHistory: ['Hypertension', 'Type 2 Diabetes'],
-    currentMedications: ['Metformin', 'Lisinopril'],
-    allergies: ['Penicillin', 'Sulfonamides'],
-    lastVisit: '2024-02-15',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P002',
-    name: 'Bob Smith',
-    email: 'bob@example.com',
-    phone: '+1-555-0102',
-    dateOfBirth: '1978-07-22',
-    gender: 'M',
-    bloodType: 'A+',
-    address: '456 Oak Ave, Los Angeles, CA',
-    medicalHistory: ['Asthma', 'GERD'],
-    currentMedications: ['Albuterol', 'Omeprazole'],
-    allergies: ['Aspirin'],
-    lastVisit: '2024-02-10',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P003',
-    name: 'Carol Davis',
-    email: 'carol@example.com',
-    phone: '+1-555-0103',
-    dateOfBirth: '1992-11-08',
-    gender: 'F',
-    bloodType: 'B-',
-    address: '789 Pine Rd, Chicago, IL',
-    medicalHistory: ['Migraine'],
-    currentMedications: ['Sumatriptan'],
-    allergies: ['NSAIDs'],
-    lastVisit: '2024-02-20',
-    status: 'active',
-    syncStatus: 'pending',
-  },
-  {
-    id: 'P004',
-    name: 'David Wilson',
-    email: 'david@example.com',
-    phone: '+1-555-0104',
-    dateOfBirth: '1988-05-30',
-    gender: 'M',
-    bloodType: 'AB+',
-    address: '321 Elm St, Houston, TX',
-    medicalHistory: ['Hyperlipidemia'],
-    currentMedications: ['Atorvastatin'],
-    allergies: ['Statins (except atorvastatin)'],
-    lastVisit: '2024-01-28',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P005',
-    name: 'Emma Martinez',
-    email: 'emma@example.com',
-    phone: '+1-555-0105',
-    dateOfBirth: '1995-09-12',
-    gender: 'F',
-    bloodType: 'O-',
-    address: '654 Cedar Ln, Phoenix, AZ',
-    medicalHistory: ['Anxiety Disorder'],
-    currentMedications: ['Sertraline'],
-    allergies: ['None known'],
-    lastVisit: '2024-02-18',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P006',
-    name: 'Frank Brown',
-    email: 'frank@example.com',
-    phone: '+1-555-0106',
-    dateOfBirth: '1980-12-25',
-    gender: 'M',
-    bloodType: 'A-',
-    address: '987 Birch Ave, Philadelphia, PA',
-    medicalHistory: ['Sleep Apnea'],
-    currentMedications: ['CPAP therapy'],
-    allergies: ['Latex'],
-    lastVisit: '2024-02-05',
-    status: 'inactive',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P007',
-    name: 'Grace Lee',
-    email: 'grace@example.com',
-    phone: '+1-555-0107',
-    dateOfBirth: '1998-04-03',
-    gender: 'F',
-    bloodType: 'B+',
-    address: '147 Maple Dr, San Antonio, TX',
-    medicalHistory: [],
-    currentMedications: [],
-    allergies: ['None known'],
-    lastVisit: '2024-02-22',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P008',
-    name: 'Henry Taylor',
-    email: 'henry@example.com',
-    phone: '+1-555-0108',
-    dateOfBirth: '1975-06-18',
-    gender: 'M',
-    bloodType: 'O+',
-    address: '258 Oak St, San Diego, CA',
-    medicalHistory: ['Rheumatoid Arthritis'],
-    currentMedications: ['Methotrexate'],
-    allergies: ['Sulfasalazine'],
-    lastVisit: '2024-02-08',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P009',
-    name: 'Iris Chen',
-    email: 'iris@example.com',
-    phone: '+1-555-0109',
-    dateOfBirth: '1990-08-20',
-    gender: 'F',
-    bloodType: 'AB-',
-    address: '369 Pine Ave, Dallas, TX',
-    medicalHistory: ['Thyroid Disorder'],
-    currentMedications: ['Levothyroxine'],
-    allergies: ['Iodine'],
-    lastVisit: '2024-02-12',
-    status: 'active',
-    syncStatus: 'synced',
-  },
-  {
-    id: 'P010',
-    name: 'Jack Robinson',
-    email: 'jack@example.com',
-    phone: '+1-555-0110',
-    dateOfBirth: '1983-10-05',
-    gender: 'M',
-    bloodType: 'A+',
-    address: '456 Cedar Ave, Austin, TX',
-    medicalHistory: ['COPD'],
-    currentMedications: ['Inhaled Corticosteroids'],
-    allergies: ['Beta-blockers'],
-    lastVisit: '2024-02-19',
-    status: 'active',
-    syncStatus: 'pending',
-  },
-]
-
-export function getPatients(): PatientRecord[] {
-  // Load from localStorage if available
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('patients')
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return mockPatients
-      }
-    }
+// Map backend patient schema to frontend generic PatientRecord interface
+const mapPatient = (backendPatient: any): PatientRecord => {
+  return {
+    id: backendPatient._id,
+    name: `${backendPatient.userId?.firstName || ''} ${backendPatient.userId?.lastName || ''}`.trim(),
+    email: backendPatient.userId?.email || '',
+    phone: backendPatient.userId?.phone || '',
+    dateOfBirth: backendPatient.userId?.dateOfBirth || '',
+    gender: backendPatient.userId?.gender?.toUpperCase()?.charAt(0) || 'Other',
+    bloodType: backendPatient.bloodType || 'Unknown',
+    address: backendPatient.address || backendPatient.userId?.address || 'Not provided',
+    medicalHistory: backendPatient.chronicConditions?.map((c: any) => c.condition) || [],
+    currentMedications: backendPatient.medications?.map((m: any) => typeof m === 'string' ? m : m.name) || [],
+    allergies: backendPatient.allergies?.map((a: any) => typeof a === 'string' ? a : a.name) || [],
+    lastVisit: backendPatient.updatedAt || backendPatient.createdAt,
+    status: backendPatient.status || 'active',
+    syncStatus: backendPatient.syncStatus || 'synced',
   }
-  return mockPatients
 }
 
-export function getPatientById(id: string): PatientRecord | undefined {
-  return getPatients().find(p => p.id === id)
+export async function getPatients(): Promise<PatientRecord[]> {
+  try {
+    const data = await fetchApi<any>('/patients')
+    // Backend returns paginated response { data: [...], pagination: {...} } or just the array depending on route wrap
+    // Here we handle the `data` wrapper which might be returned from `api.ts` extraction
+    const patientsList = Array.isArray(data) ? data : (data.patients || data.data || [])
+    return patientsList.map(mapPatient)
+  } catch (error) {
+    console.error('Error fetching patients:', error)
+    return []
+  }
 }
 
-export function searchPatients(query: string): PatientRecord[] {
-  const patients = getPatients()
+export async function getPatientById(id: string): Promise<PatientRecord | undefined> {
+  try {
+    const data = await fetchApi<any>(`/patients/${id}`)
+    return mapPatient(data)
+  } catch (error) {
+    console.error(`Error fetching patient ${id}:`, error)
+    return undefined
+  }
+}
+
+export async function searchPatients(query: string): Promise<PatientRecord[]> {
+  // If backend supports search, we can use a query param:
+  // const data = await fetchApi<any>(`/patients?search=${encodeURIComponent(query)}`)
+  // For now, fetch all and filter client-side as fallback if endpoint doesn't support generic search
+  const patients = await getPatients()
   const lowerQuery = query.toLowerCase()
   return patients.filter(p =>
     p.name.toLowerCase().includes(lowerQuery) ||
@@ -208,53 +73,85 @@ export function searchPatients(query: string): PatientRecord[] {
   )
 }
 
-export function updatePatient(id: string, data: Partial<PatientRecord>): PatientRecord | null {
-  const patients = getPatients()
-  const index = patients.findIndex(p => p.id === id)
-  if (index === -1) return null
+export async function updatePatient(id: string, data: Partial<PatientRecord>): Promise<PatientRecord | null> {
+  try {
+    // Note: We'd need to map Frontend PatientRecord back to Backend Schema
+    // For simplicity, we assume backend takes direct updates for now
 
-  patients[index] = { ...patients[index], ...data }
+    // We queue offline updates into sync-queue if we catch a network error
+    const backendData: any = {}
+    if (data.bloodType !== undefined) backendData.bloodType = data.bloodType
+    if (data.allergies !== undefined) {
+      backendData.allergies = data.allergies.map(a => ({ name: a, severity: 'moderate' }))
+    }
+    if (data.medicalHistory !== undefined) {
+      backendData.chronicConditions = data.medicalHistory.map(c => ({ condition: c, status: 'active' }))
+    }
+    if (data.currentMedications !== undefined) {
+      backendData.medications = data.currentMedications
+    }
 
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('patients', JSON.stringify(patients))
-
-    // Add to sync queue
-    const queue = localStorage.getItem('sync-queue') || '[]'
-    const syncQueue = JSON.parse(queue)
-    syncQueue.push({
-      type: 'update-patient',
-      id,
-      data,
-      timestamp: new Date().toISOString(),
+    const response = await fetchApi<any>(`/patients/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(backendData)
     })
-    localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
-  }
 
-  return patients[index]
+    return mapPatient(response)
+  } catch (error) {
+    console.error(`Error updating patient ${id}:`, error)
+
+    // Add to sync queue for offline support
+    if (typeof window !== 'undefined') {
+      const queue = localStorage.getItem('sync-queue') || '[]'
+      const syncQueue = JSON.parse(queue)
+      syncQueue.push({
+        type: 'update-patient',
+        id,
+        data,
+        timestamp: new Date().toISOString(),
+      })
+      localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
+    }
+
+    return null
+  }
 }
 
-export function createPatient(patient: Omit<PatientRecord, 'id'>): PatientRecord {
-  const newPatient: PatientRecord = {
-    ...patient,
-    id: `P${String(getPatients().length + 1).padStart(3, '0')}`,
-  }
+export async function createPatient(patient: Omit<PatientRecord, 'id'>): Promise<PatientRecord | null> {
+  try {
+    const backendData: any = {
+      bloodType: patient.bloodType,
+    }
+    if (patient.allergies?.length) {
+      backendData.allergies = patient.allergies.map(a => ({ name: a, severity: 'moderate' }))
+    }
+    if (patient.medicalHistory?.length) {
+      backendData.chronicConditions = patient.medicalHistory.map(c => ({ condition: c, status: 'active' }))
+    }
+    if (patient.currentMedications?.length) {
+      backendData.medications = patient.currentMedications
+    }
 
-  const patients = getPatients()
-  patients.push(newPatient)
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('patients', JSON.stringify(patients))
-
-    // Add to sync queue
-    const queue = localStorage.getItem('sync-queue') || '[]'
-    const syncQueue = JSON.parse(queue)
-    syncQueue.push({
-      type: 'create-patient',
-      data: newPatient,
-      timestamp: new Date().toISOString(),
+    const response = await fetchApi<any>('/patients', {
+      method: 'POST',
+      body: JSON.stringify(backendData)
     })
-    localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
-  }
 
-  return newPatient
+    return mapPatient(response)
+  } catch (error) {
+    console.error('Error creating patient:', error)
+
+    if (typeof window !== 'undefined') {
+      const queue = localStorage.getItem('sync-queue') || '[]'
+      const syncQueue = JSON.parse(queue)
+      syncQueue.push({
+        type: 'create-patient',
+        data: patient,
+        timestamp: new Date().toISOString(),
+      })
+      localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
+    }
+
+    return null
+  }
 }

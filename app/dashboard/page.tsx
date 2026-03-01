@@ -36,48 +36,52 @@ function DashboardContent() {
   const [recentActivity, setRecentActivity] = useState<any[]>([])
 
   useEffect(() => {
-    // Get current user
-    const currentUser = getCurrentUser()
-    setUser(currentUser)
+    const fetchData = async () => {
+      // Get current user
+      const currentUser = getCurrentUser()
+      setUser(currentUser)
 
-    // Calculate stats
-    const patients = getPatients()
-    const consents = getConsents()
+      // Calculate stats
+      const patients = await getPatients()
+      const consents = await getConsents()
 
-    const activeConsents = consents.filter(c => c.status === 'active').length
-    const pendingConsents = consents.filter(c => c.status === 'pending').length
-    const syncedRecords = patients.filter(p => p.syncStatus === 'synced').length
+      const activeConsents = consents.filter(c => c.status === 'active').length
+      const pendingConsents = consents.filter(c => c.status === 'pending').length
+      const syncedRecords = patients.filter(p => p.syncStatus === 'synced').length
 
-    setStats({
-      totalPatients: patients.length,
-      activeConsents,
-      pendingConsents,
-      recordsSynced: syncedRecords,
-    })
+      setStats({
+        totalPatients: patients.length,
+        activeConsents,
+        pendingConsents,
+        recordsSynced: syncedRecords,
+      })
 
-    // Get recent activity
-    const activity = [
-      ...patients.slice(0, 3).map(p => ({
-        type: 'patient',
-        title: `Patient record: ${p.name}`,
-        timestamp: p.lastVisit,
-        status: p.status,
-      })),
-      ...consents.slice(0, 3).map(c => ({
-        type: 'consent',
-        title: `Consent: ${c.patientName}`,
-        timestamp: c.grantedDate,
-        status: c.status,
-      })),
-    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      // Get recent activity
+      const activity = [
+        ...patients.slice(0, 3).map(p => ({
+          type: 'patient',
+          title: `Patient record: ${p.name}`,
+          timestamp: p.lastVisit,
+          status: p.status,
+        })),
+        ...consents.slice(0, 3).map(c => ({
+          type: 'consent',
+          title: `Consent: ${c.patientName}`,
+          timestamp: c.grantedDate,
+          status: c.status,
+        })),
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-    setRecentActivity(activity.slice(0, 5))
+      setRecentActivity(activity.slice(0, 5))
+    }
+
+    fetchData()
   }, [])
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           {/* Welcome Header */}
@@ -97,14 +101,12 @@ function DashboardContent() {
               value={stats.totalPatients}
               description="Active patient records"
               icon={<Users className="w-5 h-5" />}
-              trend={{ direction: 'up', value: 8 }}
             />
             <StatCard
               title="Active Consents"
               value={stats.activeConsents}
               description="Granted permissions"
               icon={<CheckCircle className="w-5 h-5" />}
-              trend={{ direction: 'up', value: 12 }}
             />
             <StatCard
               title="Pending Approvals"
@@ -117,7 +119,6 @@ function DashboardContent() {
               value={`${stats.recordsSynced}/${stats.totalPatients}`}
               description="Data synchronization"
               icon={<FileText className="w-5 h-5" />}
-              trend={{ direction: 'up', value: 100 }}
             />
           </div>
 
@@ -214,8 +215,8 @@ function DashboardContent() {
                           {new Date(activity.timestamp).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge 
-                            status={activity.status === 'active' ? 'active' : activity.status === 'pending' ? 'pending' : 'inactive'} 
+                          <StatusBadge
+                            status={activity.status === 'active' ? 'active' : activity.status === 'pending' ? 'pending' : 'inactive'}
                           />
                         </TableCell>
                       </TableRow>
@@ -234,7 +235,7 @@ function DashboardContent() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-foreground">
               <p>
-                Your healthcare records and patient data are cached locally on this device. 
+                Your healthcare records and patient data are cached locally on this device.
                 When offline, you can:
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">

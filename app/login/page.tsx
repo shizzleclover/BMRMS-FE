@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { login, getMockUsers } from '@/lib/auth'
+import { login } from '@/lib/auth'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,25 +16,23 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const mockUsers = getMockUsers()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
-    const user = login(email, password)
-    if (user) {
-      router.push('/dashboard')
-    } else {
-      setError('Invalid email or password')
+    try {
+      const user = await login(email, password)
+      if (user) {
+        router.push('/dashboard')
+      } else {
+        setError('Invalid email or password')
+      }
+    } catch (err) {
+      setError('Login failed: Invalid email or password')
     }
 
     setIsLoading(false)
-  }
-
-  const demoLogin = (demoEmail: string) => {
-    setEmail(demoEmail)
   }
 
   return (
@@ -99,46 +97,6 @@ export default function LoginPage() {
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Demo Users</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {mockUsers.map((user) => (
-                <button
-                  key={user.email}
-                  type="button"
-                  onClick={() => demoLogin(user.email)}
-                  className="w-full px-4 py-2 text-sm text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors text-left"
-                >
-                  <span className="font-medium">{user.name}</span>
-                  <span className="text-xs text-muted-foreground block">{user.email}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="text-xs text-center text-muted-foreground pt-2">
-              Password: <span className="font-mono">password123</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Section */}
-        <Card className="border-border bg-blue-50">
-          <CardContent className="pt-6 text-sm text-foreground">
-            <p className="font-semibold mb-2">Demo Credentials:</p>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li>• Doctor: doctor@bmrms.com</li>
-              <li>• Patient: patient@bmrms.com</li>
-              <li>• Admin: admin@bmrms.com</li>
-              <li>• Password: password123</li>
-            </ul>
           </CardContent>
         </Card>
       </div>

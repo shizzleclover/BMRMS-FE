@@ -1,4 +1,5 @@
-// Mock user data for demo
+import { fetchApi } from './api'
+
 export interface User {
   id: string
   name: string
@@ -8,64 +9,59 @@ export interface User {
   avatar?: string
 }
 
-// Simulated user database
-const mockUsers: Record<string, { password: string; user: User }> = {
-  'doctor@bmrms.com': {
-    password: 'password123',
-    user: {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      email: 'doctor@bmrms.com',
-      role: 'doctor',
-      department: 'Cardiology',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-    },
-  },
-  'patient@bmrms.com': {
-    password: 'password123',
-    user: {
-      id: '2',
-      name: 'John Doe',
-      email: 'patient@bmrms.com',
-      role: 'patient',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
-    },
-  },
-  'admin@bmrms.com': {
-    password: 'password123',
-    user: {
-      id: '3',
-      name: 'Admin User',
-      email: 'admin@bmrms.com',
-      role: 'admin',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-    },
-  },
-}
-
-export function login(email: string, password: string): User | null {
-  const userEntry = mockUsers[email]
-  if (userEntry && userEntry.password === password) {
-    // Store session in localStorage
-    const token = btoa(`${email}:${Date.now()}`)
-    localStorage.setItem('auth-token', token)
-    localStorage.setItem('auth-user', JSON.stringify(userEntry.user))
-    return userEntry.user
+// Map backend user schema to frontend generic User interface
+const mapUser = (backendUser: any): User => {
+  return {
+    id: backendUser._id,
+    name: `${backendUser.firstName} ${backendUser.lastName}`,
+    email: backendUser.email,
+    role: backendUser.role,
+    department: backendUser.department || undefined,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.firstName}`
   }
-  return null
 }
 
-export function logout(): void {
-  localStorage.removeItem('auth-token')
-  localStorage.removeItem('auth-user')
+export async function login(email: string, password: string): Promise<User | null> {
+  try {
+    const response = await fetchApi<any>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    })
+
+    if (response && response.accessToken && response.user) {
+      const user = mapUser(response.user)
+
+      localStorage.setItem('auth-token', response.accessToken)
+      localStorage.setItem('auth-user', JSON.stringify(user))
+
+      return user
+    }
+    return null
+  } catch (error) {
+    console.error('Login error:', error)
+    return null
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    // Attempt to notify backend
+    await fetchApi('/auth/logout', { method: 'POST' })
+  } catch (error) {
+    // Ignore error if backend is unreachable, we still want to clear local state
+    console.error('Error logging out from backend:', error)
+  } finally {
+    localStorage.removeItem('auth-token')
+    localStorage.removeItem('auth-user')
+  }
 }
 
 export function getCurrentUser(): User | null {
   if (typeof window === 'undefined') return null
-  
+
   const userJson = localStorage.getItem('auth-user')
   if (!userJson) return null
-  
+
   try {
     return JSON.parse(userJson)
   } catch {
@@ -76,8 +72,4 @@ export function getCurrentUser(): User | null {
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false
   return !!localStorage.getItem('auth-token')
-}
-
-export function getMockUsers(): User[] {
-  return Object.values(mockUsers).map(entry => entry.user)
 }

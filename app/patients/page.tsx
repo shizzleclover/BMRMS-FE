@@ -20,20 +20,36 @@ function PatientsContent() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    setIsLoading(true)
-    const allPatients = getPatients()
-    setPatients(allPatients)
-    setIsLoading(false)
-  }, [])
+    const fetchAllPatients = async () => {
+      setIsLoading(true)
+      const allPatients = await getPatients()
+      setPatients(allPatients)
+      setIsLoading(false)
+    }
 
-  const filteredPatients = searchQuery
-    ? searchPatients(searchQuery)
-    : patients
+    const fetchSearchPatients = async () => {
+      setIsLoading(true)
+      const results = await searchPatients(searchQuery)
+      setPatients(results)
+      setIsLoading(false)
+    }
+
+    // Debounce search
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery) {
+        fetchSearchPatients()
+      } else {
+        fetchAllPatients()
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           <PageHeader
@@ -70,7 +86,7 @@ function PatientsContent() {
               <div className="p-8 text-center text-muted-foreground">
                 Loading patients...
               </div>
-            ) : filteredPatients.length === 0 ? (
+            ) : patients.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 {searchQuery ? 'No patients found matching your search.' : 'No patient records available.'}
               </div>
@@ -88,7 +104,7 @@ function PatientsContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient) => (
+                  {patients.map((patient) => (
                     <TableRow key={patient.id} className="border-b border-border hover:bg-muted/50">
                       <TableCell className="font-medium text-foreground">{patient.name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{patient.id}</TableCell>

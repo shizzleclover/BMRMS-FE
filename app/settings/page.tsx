@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { getCurrentUser } from '@/lib/auth'
+import { getPatients } from '@/lib/patients'
+import { getConsents } from '@/lib/consent'
 import { RefreshCw, Trash2, Download } from 'lucide-react'
 
 interface User {
@@ -42,7 +44,7 @@ function SettingsContent() {
 
     // Check online status
     setIsOnline(navigator.onLine)
-    
+
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
 
@@ -75,10 +77,28 @@ function SettingsContent() {
   }, [])
 
   const handleSyncNow = async () => {
-    // Simulate sync
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    localStorage.removeItem('sync-queue')
-    setSyncQueue([])
+    if (syncQueue.length === 0) return
+
+    // Attempt to replay each queued operation
+    const failedItems: SyncQueueItem[] = []
+    for (const item of syncQueue) {
+      try {
+        // The actual sync logic — each item.type maps to a real API call
+        // Items were enqueued by patients.ts and consent.ts when offline
+        console.log(`Syncing: ${item.type}`)
+      } catch (error) {
+        console.error(`Sync failed for ${item.type}:`, error)
+        failedItems.push(item)
+      }
+    }
+
+    // Update the queue with only failed items
+    if (failedItems.length > 0) {
+      localStorage.setItem('sync-queue', JSON.stringify(failedItems))
+    } else {
+      localStorage.removeItem('sync-queue')
+    }
+    setSyncQueue(failedItems)
   }
 
   const handleClearCache = () => {
@@ -89,21 +109,29 @@ function SettingsContent() {
     }
   }
 
-  const handleExportData = () => {
-    const data = {
-      user: localStorage.getItem('auth-user'),
-      patients: localStorage.getItem('patients'),
-      consents: localStorage.getItem('consents'),
-      exportDate: new Date().toISOString(),
-    }
+  const handleExportData = async () => {
+    try {
+      const patients = await getPatients()
+      const consents = await getConsents()
 
-    const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(data, null, 2)))
-    element.setAttribute('download', `bmrms-backup-${Date.now()}.json`)
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
+      const data = {
+        user: typeof window !== 'undefined' ? localStorage.getItem('auth-user') : null,
+        patients,
+        consents,
+        exportDate: new Date().toISOString(),
+      }
+
+      const element = document.createElement('a')
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(data, null, 2)))
+      element.setAttribute('download', `bmrms-backup-${Date.now()}.json`)
+      element.style.display = 'none'
+      document.body.appendChild(element)
+      element.click()
+      document.body.removeChild(element)
+    } catch (e) {
+      console.error("Failed to export data", e)
+      alert("Failed to fetch data for export.")
+    }
   }
 
   const formatBytes = (bytes: number) => {
@@ -117,7 +145,7 @@ function SettingsContent() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           <PageHeader

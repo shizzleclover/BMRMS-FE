@@ -8,6 +8,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { SyncStatus } from '@/components/SyncStatus'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -17,8 +19,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { getConsents, revokeConsent, Consent, getConsentTypeLabel } from '@/lib/consent'
+import { getConsents, revokeConsent, createConsent, Consent, getConsentTypeLabel } from '@/lib/consent'
 import { Plus, Eye, Trash2 } from 'lucide-react'
 
 function ConsentContent() {
@@ -26,16 +29,46 @@ function ConsentContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null)
   const [revokeId, setRevokeId] = useState<string | null>(null)
+  const [showNewConsent, setShowNewConsent] = useState(false)
+  const [newConsentDoctorId, setNewConsentDoctorId] = useState('')
+  const [newConsentAccess, setNewConsentAccess] = useState('read')
+  const [isGranting, setIsGranting] = useState(false)
 
-  useEffect(() => {
+  const refreshConsents = async () => {
     setIsLoading(true)
-    const allConsents = getConsents()
+    const allConsents = await getConsents()
     setConsents(allConsents)
     setIsLoading(false)
+  }
+
+  useEffect(() => {
+    refreshConsents()
   }, [])
 
-  const handleRevoke = (id: string) => {
-    const updated = revokeConsent(id, 'Revoked by patient')
+  const handleGrantConsent = async () => {
+    if (!newConsentDoctorId.trim()) return
+    setIsGranting(true)
+    const result = await createConsent({
+      patientId: '',
+      patientName: '',
+      consentType: 'medical-records',
+      grantedTo: newConsentDoctorId,
+      status: 'active',
+      grantedDate: new Date().toISOString(),
+      purpose: newConsentAccess,
+      scope: ['all_records'],
+    })
+    if (result) {
+      await refreshConsents()
+      setShowNewConsent(false)
+      setNewConsentDoctorId('')
+      setNewConsentAccess('read')
+    }
+    setIsGranting(false)
+  }
+
+  const handleRevoke = async (id: string) => {
+    const updated = await revokeConsent(id, 'Revoked by patient')
     if (updated) {
       setConsents(consents.map(c => c.id === id ? updated : c))
       setRevokeId(null)
@@ -52,7 +85,7 @@ function ConsentContent() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           <PageHeader
@@ -60,10 +93,55 @@ function ConsentContent() {
             description="Manage patient data access permissions and authorizations"
             icon="📋"
             action={
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Consent
-              </Button>
+              <Dialog open={showNewConsent} onOpenChange={setShowNewConsent}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    New Consent
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Grant New Consent</DialogTitle>
+                    <DialogDescription>
+                      Grant a doctor access to your medical records.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <Label htmlFor="doctorId">Doctor User ID</Label>
+                      <Input
+                        id="doctorId"
+                        value={newConsentDoctorId}
+                        onChange={(e) => setNewConsentDoctorId(e.target.value)}
+                        placeholder="Enter the doctor's user ID"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="accessLevel">Access Level</Label>
+                      <Select value={newConsentAccess} onValueChange={setNewConsentAccess}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="read">Read Only</SelectItem>
+                          <SelectItem value="write">Read & Write</SelectItem>
+                          <SelectItem value="full">Full Access</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button variant="ghost" onClick={() => setShowNewConsent(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleGrantConsent} disabled={isGranting || !newConsentDoctorId.trim()}>
+                        {isGranting ? 'Granting...' : 'Grant Consent'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             }
           />
 
