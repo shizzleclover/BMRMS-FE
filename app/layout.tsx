@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Urbanist, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
 
 const urbanist = Urbanist({
@@ -31,7 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${urbanist.variable} ${plusJakarta.variable}`}>
       <body className="font-sans antialiased bg-background text-foreground">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

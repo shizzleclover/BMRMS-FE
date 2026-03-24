@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { getCurrentUser } from '@/lib/auth'
+import { useAuth } from '@/components/AuthProvider'
 import { getPatients } from '@/lib/patients'
 import { getConsents } from '@/lib/consent'
 import { RefreshCw, Trash2, Download } from 'lucide-react'
@@ -31,7 +31,7 @@ interface SyncQueueItem {
 }
 
 function SettingsContent() {
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useAuth()
   const [isOnline, setIsOnline] = useState(true)
   const [syncQueue, setSyncQueue] = useState<SyncQueueItem[]>([])
   const [offlineMode, setOfflineMode] = useState(false)
@@ -39,9 +39,6 @@ function SettingsContent() {
   const [cacheSize, setCacheSize] = useState(0)
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
-    setUser(currentUser)
-
     // Check online status
     setIsOnline(navigator.onLine)
 
@@ -293,14 +290,16 @@ function SettingsContent() {
                   <Separator />
 
                   <div className="space-y-2">
-                    <Button
-                      onClick={handleExportData}
-                      variant="outline"
-                      className="w-full gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export Data
-                    </Button>
+                    {user?.role !== 'patient' && (
+                      <Button
+                        onClick={handleExportData}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Data
+                      </Button>
+                    )}
                     <Button
                       onClick={handleClearCache}
                       variant="destructive"

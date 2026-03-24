@@ -21,300 +21,500 @@ import {
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { getConsents, revokeConsent, createConsent, Consent, getConsentTypeLabel } from '@/lib/consent'
+import { useAuth } from '@/components/AuthProvider'
+import {
+  getConsents,
+  revokeConsent,
+  createConsent,
+  Consent,
+  getAccessLevelLabel,
+  getScopeLabel,
+} from '@/lib/consent'
 import { Plus, Eye, Trash2 } from 'lucide-react'
 
-function ConsentContent() {
+// ---------------------------------------------------------------------------
+// Shared consent detail dialog
+// ---------------------------------------------------------------------------
+function ConsentDetailDialog({
+  consent,
+  open,
+  onOpenChange,
+}: {
+  consent: Consent
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Consent Details</DialogTitle>
+          <DialogDescription>Full information about this consent record</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Patient</p>
+              <p className="text-sm text-foreground">{consent.patientName}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Granted To</p>
+              <p className="text-sm text-foreground">{consent.grantedToName}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Access Level</p>
+              <p className="text-sm text-foreground">{getAccessLevelLabel(consent.accessLevel)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Scope</p>
+              <p className="text-sm text-foreground">{getScopeLabel(consent.scope)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Status</p>
+              <StatusBadge status={consent.status === 'active' ? 'active' : consent.status === 'expired' ? 'archived' : 'revoked'} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Granted Date</p>
+              <p className="text-sm text-foreground">{new Date(consent.grantedDate).toLocaleDateString()}</p>
+            </div>
+          </div>
+          {consent.expiryDate && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Expires</p>
+              <p className="text-sm text-foreground">{new Date(consent.expiryDate).toLocaleDateString()}</p>
+            </div>
+          )}
+          {consent.revokedDate && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Revoked</p>
+              <p className="text-sm text-foreground">{new Date(consent.revokedDate).toLocaleDateString()}</p>
+            </div>
+          )}
+          {consent.clinicName && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Clinic</p>
+              <p className="text-sm text-foreground">{consent.clinicName}</p>
+            </div>
+          )}
+          {consent.blockchainTxHash && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Blockchain Tx</p>
+              <p className="text-xs text-muted-foreground font-mono break-all">{consent.blockchainTxHash}</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Patient View — manage consents they&apos;ve granted
+// ---------------------------------------------------------------------------
+function PatientConsentView() {
   const [consents, setConsents] = useState<Consent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null)
-  const [revokeId, setRevokeId] = useState<string | null>(null)
-  const [showNewConsent, setShowNewConsent] = useState(false)
-  const [newConsentDoctorId, setNewConsentDoctorId] = useState('')
-  const [newConsentAccess, setNewConsentAccess] = useState('read')
+  const [revokeTarget, setRevokeTarget] = useState<Consent | null>(null)
+  const [showGrant, setShowGrant] = useState(false)
+  const [doctorId, setDoctorId] = useState('')
+  const [accessLevel, setAccessLevel] = useState('read')
   const [isGranting, setIsGranting] = useState(false)
 
-  const refreshConsents = async () => {
+  const refresh = async () => {
     setIsLoading(true)
-    const allConsents = await getConsents()
-    setConsents(allConsents)
+    setConsents(await getConsents())
     setIsLoading(false)
   }
 
-  useEffect(() => {
-    refreshConsents()
-  }, [])
+  useEffect(() => { refresh() }, [])
 
-  const handleGrantConsent = async () => {
-    if (!newConsentDoctorId.trim()) return
+  const handleGrant = async () => {
+    if (!doctorId.trim()) return
     setIsGranting(true)
-    const result = await createConsent({
-      patientId: '',
-      patientName: '',
-      consentType: 'medical-records',
-      grantedTo: newConsentDoctorId,
-      status: 'active',
-      grantedDate: new Date().toISOString(),
-      purpose: newConsentAccess,
-      scope: ['all_records'],
-    })
+    const result = await createConsent(doctorId.trim(), accessLevel)
     if (result) {
-      await refreshConsents()
-      setShowNewConsent(false)
-      setNewConsentDoctorId('')
-      setNewConsentAccess('read')
+      await refresh()
+      setShowGrant(false)
+      setDoctorId('')
+      setAccessLevel('read')
     }
     setIsGranting(false)
   }
 
-  const handleRevoke = async (id: string) => {
-    const updated = await revokeConsent(id, 'Revoked by patient')
+  const handleRevoke = async (consent: Consent) => {
+    const updated = await revokeConsent(consent.id, 'Revoked by patient')
     if (updated) {
-      setConsents(consents.map(c => c.id === id ? updated : c))
-      setRevokeId(null)
+      setConsents(prev => prev.map(c => (c.id === consent.id ? updated : c)))
     }
+    setRevokeTarget(null)
   }
 
-  const statusMap = {
-    active: 'active' as const,
-    revoked: 'revoked' as const,
-    pending: 'pending' as const,
-    expired: 'archived' as const,
+  const statusMap = (s: string) =>
+    s === 'active' ? 'active' as const : s === 'expired' ? 'archived' as const : 'revoked' as const
+
+  return (
+    <>
+      <PageHeader
+        title="My Consents"
+        description="Manage who can access your medical records"
+        icon="🔐"
+        action={
+          <Dialog open={showGrant} onOpenChange={setShowGrant}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Grant Access
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Grant New Consent</DialogTitle>
+                <DialogDescription>
+                  Allow a doctor to access your medical records.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div>
+                  <Label htmlFor="doctorId">Doctor User ID</Label>
+                  <Input
+                    id="doctorId"
+                    value={doctorId}
+                    onChange={(e) => setDoctorId(e.target.value)}
+                    placeholder="Enter the doctor&apos;s user ID"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="accessLevel">Access Level</Label>
+                  <Select value={accessLevel} onValueChange={setAccessLevel}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="read">Read Only</SelectItem>
+                      <SelectItem value="write">Read &amp; Write</SelectItem>
+                      <SelectItem value="full">Full Access</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="ghost" onClick={() => setShowGrant(false)}>Cancel</Button>
+                  <Button onClick={handleGrant} disabled={isGranting || !doctorId.trim()}>
+                    {isGranting ? 'Granting...' : 'Grant Consent'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <div className="flex justify-end"><SyncStatus /></div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading consents...</div>
+      ) : consents.length === 0 ? (
+        <Card className="border-border p-8 text-center text-muted-foreground">
+          You haven&apos;t granted any consents yet. Use the &quot;Grant Access&quot; button to allow a doctor to view your records.
+        </Card>
+      ) : (
+        <Card className="border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border">
+                <TableHead className="font-semibold text-foreground">Doctor</TableHead>
+                <TableHead className="font-semibold text-foreground">Access Level</TableHead>
+                <TableHead className="font-semibold text-foreground">Scope</TableHead>
+                <TableHead className="font-semibold text-foreground">Granted</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {consents.map((c) => (
+                <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <TableCell className="font-medium text-foreground">{c.grantedToName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
+                  <TableCell><StatusBadge status={statusMap(c.status)} /></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="sm" className="gap-1" onClick={() => setSelectedConsent(c)}>
+                        <Eye className="w-4 h-4" /> Details
+                      </Button>
+                      {c.status === 'active' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-destructive hover:text-destructive"
+                          onClick={() => setRevokeTarget(c)}
+                        >
+                          <Trash2 className="w-4 h-4" /> Revoke
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {selectedConsent && (
+        <ConsentDetailDialog consent={selectedConsent} open={!!selectedConsent} onOpenChange={(o) => !o && setSelectedConsent(null)} />
+      )}
+
+      <Dialog open={!!revokeTarget} onOpenChange={(o) => !o && setRevokeTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke Consent</DialogTitle>
+            <DialogDescription>Are you sure you want to revoke access for {revokeTarget?.grantedToName}?</DialogDescription>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertDescription>
+              Once revoked, {revokeTarget?.grantedToName} will no longer be able to access your medical records.
+            </AlertDescription>
+          </Alert>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => setRevokeTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => revokeTarget && handleRevoke(revokeTarget)}>
+              Revoke Consent
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Doctor View — see consents granted TO them (read-only)
+// ---------------------------------------------------------------------------
+function DoctorConsentView() {
+  const [consents, setConsents] = useState<Consent[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true)
+      setConsents(await getConsents())
+      setIsLoading(false)
+    }
+    load()
+  }, [])
+
+  const statusMap = (s: string) =>
+    s === 'active' ? 'active' as const : s === 'expired' ? 'archived' as const : 'revoked' as const
+
+  return (
+    <>
+      <PageHeader
+        title="Patient Consents"
+        description="Patients who have granted you access to their records"
+        icon="📋"
+      />
+
+      <div className="flex justify-end"><SyncStatus /></div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading consents...</div>
+      ) : consents.length === 0 ? (
+        <Card className="border-border p-8 text-center text-muted-foreground">
+          No patients have granted you consent yet.
+        </Card>
+      ) : (
+        <Card className="border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border">
+                <TableHead className="font-semibold text-foreground">Patient</TableHead>
+                <TableHead className="font-semibold text-foreground">Access Level</TableHead>
+                <TableHead className="font-semibold text-foreground">Scope</TableHead>
+                <TableHead className="font-semibold text-foreground">Granted</TableHead>
+                <TableHead className="font-semibold text-foreground">Expires</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {consents.map((c) => (
+                <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <TableCell className="font-medium text-foreground">{c.patientName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : '—'}
+                  </TableCell>
+                  <TableCell><StatusBadge status={statusMap(c.status)} /></TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => setSelectedConsent(c)}>
+                      <Eye className="w-4 h-4" /> Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {selectedConsent && (
+        <ConsentDetailDialog consent={selectedConsent} open={!!selectedConsent} onOpenChange={(o) => !o && setSelectedConsent(null)} />
+      )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Admin View — see all consents system-wide, can revoke
+// ---------------------------------------------------------------------------
+function AdminConsentView() {
+  const [consents, setConsents] = useState<Consent[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<Consent | null>(null)
+
+  const refresh = async () => {
+    setIsLoading(true)
+    setConsents(await getConsents())
+    setIsLoading(false)
   }
+
+  useEffect(() => { refresh() }, [])
+
+  const handleRevoke = async (consent: Consent) => {
+    const updated = await revokeConsent(consent.id, 'Revoked by admin')
+    if (updated) {
+      setConsents(prev => prev.map(c => (c.id === consent.id ? updated : c)))
+    }
+    setRevokeTarget(null)
+  }
+
+  const statusMap = (s: string) =>
+    s === 'active' ? 'active' as const : s === 'expired' ? 'archived' as const : 'revoked' as const
+
+  return (
+    <>
+      <PageHeader
+        title="All Consent Records"
+        description="System-wide consent management"
+        icon="🛡️"
+      />
+
+      <div className="flex justify-end"><SyncStatus /></div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading consents...</div>
+      ) : consents.length === 0 ? (
+        <Card className="border-border p-8 text-center text-muted-foreground">
+          No consent records in the system yet.
+        </Card>
+      ) : (
+        <Card className="border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border">
+                <TableHead className="font-semibold text-foreground">Patient</TableHead>
+                <TableHead className="font-semibold text-foreground">Granted To</TableHead>
+                <TableHead className="font-semibold text-foreground">Access</TableHead>
+                <TableHead className="font-semibold text-foreground">Scope</TableHead>
+                <TableHead className="font-semibold text-foreground">Date</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {consents.map((c) => (
+                <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <TableCell className="font-medium text-foreground">{c.patientName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{c.grantedToName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
+                  <TableCell><StatusBadge status={statusMap(c.status)} /></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="sm" className="gap-1" onClick={() => setSelectedConsent(c)}>
+                        <Eye className="w-4 h-4" /> Details
+                      </Button>
+                      {c.status === 'active' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-destructive hover:text-destructive"
+                          onClick={() => setRevokeTarget(c)}
+                        >
+                          <Trash2 className="w-4 h-4" /> Revoke
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {selectedConsent && (
+        <ConsentDetailDialog consent={selectedConsent} open={!!selectedConsent} onOpenChange={(o) => !o && setSelectedConsent(null)} />
+      )}
+
+      <Dialog open={!!revokeTarget} onOpenChange={(o) => !o && setRevokeTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke Consent (Admin)</DialogTitle>
+            <DialogDescription>
+              Revoke consent between {revokeTarget?.patientName} and {revokeTarget?.grantedToName}?
+            </DialogDescription>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertDescription>
+              This will immediately revoke {revokeTarget?.grantedToName}&apos;s access to {revokeTarget?.patientName}&apos;s records.
+            </AlertDescription>
+          </Alert>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => setRevokeTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => revokeTarget && handleRevoke(revokeTarget)}>
+              Revoke Consent
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main page — delegates to role-specific view
+// ---------------------------------------------------------------------------
+function ConsentContent() {
+  const { user } = useAuth()
+
+  if (!user) return null
+
+  const View =
+    user.role === 'patient'
+      ? PatientConsentView
+      : user.role === 'doctor'
+        ? DoctorConsentView
+        : AdminConsentView
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
-          <PageHeader
-            title="Consent Management"
-            description="Manage patient data access permissions and authorizations"
-            icon="📋"
-            action={
-              <Dialog open={showNewConsent} onOpenChange={setShowNewConsent}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    New Consent
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Grant New Consent</DialogTitle>
-                    <DialogDescription>
-                      Grant a doctor access to your medical records.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <Label htmlFor="doctorId">Doctor User ID</Label>
-                      <Input
-                        id="doctorId"
-                        value={newConsentDoctorId}
-                        onChange={(e) => setNewConsentDoctorId(e.target.value)}
-                        placeholder="Enter the doctor's user ID"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="accessLevel">Access Level</Label>
-                      <Select value={newConsentAccess} onValueChange={setNewConsentAccess}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="read">Read Only</SelectItem>
-                          <SelectItem value="write">Read & Write</SelectItem>
-                          <SelectItem value="full">Full Access</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button variant="ghost" onClick={() => setShowNewConsent(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleGrantConsent} disabled={isGranting || !newConsentDoctorId.trim()}>
-                        {isGranting ? 'Granting...' : 'Grant Consent'}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            }
-          />
-
-          {/* Sync Status */}
-          <div className="flex justify-end">
-            <SyncStatus />
-          </div>
-
-          {/* Consents Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {isLoading ? (
-              <div className="col-span-2 p-8 text-center text-muted-foreground">
-                Loading consents...
-              </div>
-            ) : consents.length === 0 ? (
-              <div className="col-span-2 p-8 text-center text-muted-foreground">
-                No consent records available.
-              </div>
-            ) : (
-              consents.map((consent) => (
-                <Card key={consent.id} className="border-border overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="p-6 space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-foreground">{consent.patientName}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {getConsentTypeLabel(consent.consentType)}
-                        </p>
-                      </div>
-                      <StatusBadge status={statusMap[consent.status]} />
-                    </div>
-
-                    {/* Details */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Granted To:</span>
-                        <span className="font-medium text-foreground">{consent.grantedTo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Granted Date:</span>
-                        <span className="text-foreground">{new Date(consent.grantedDate).toLocaleDateString()}</span>
-                      </div>
-                      {consent.expiryDate && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Expiry Date:</span>
-                          <span className="text-foreground">{new Date(consent.expiryDate).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Purpose */}
-                    <div className="pt-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">Purpose:</p>
-                      <p className="text-sm text-foreground">{consent.purpose}</p>
-                    </div>
-
-                    {/* Scope Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      {consent.scope.map((scope) => (
-                        <span key={scope} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
-                          {scope}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex-1 gap-1"
-                            onClick={() => setSelectedConsent(consent)}
-                          >
-                            <Eye className="w-4 h-4" />
-                            Details
-                          </Button>
-                        </DialogTrigger>
-                        {selectedConsent?.id === consent.id && (
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Consent Details</DialogTitle>
-                              <DialogDescription>
-                                {getConsentTypeLabel(selectedConsent.consentType)}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">Patient</p>
-                                <p className="text-sm text-foreground">{selectedConsent.patientName}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">Granted To</p>
-                                <p className="text-sm text-foreground">{selectedConsent.grantedTo}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">Scope</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {selectedConsent.scope.map((scope) => (
-                                    <span key={scope} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
-                                      {scope}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">Audit Trail</p>
-                                <div className="space-y-2">
-                                  {selectedConsent.auditTrail.map((entry, idx) => (
-                                    <div key={idx} className="text-xs border-l-2 border-border pl-2 py-1">
-                                      <p className="font-medium text-foreground">{entry.action.toUpperCase()}</p>
-                                      <p className="text-muted-foreground">
-                                        {new Date(entry.timestamp).toLocaleString()} by {entry.actor}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        )}
-                      </Dialog>
-
-                      {consent.status === 'active' && (
-                        <Dialog open={revokeId === consent.id} onOpenChange={(open) => !open && setRevokeId(null)}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="flex-1 gap-1 text-destructive hover:text-destructive"
-                              onClick={() => setRevokeId(consent.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Revoke
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Revoke Consent</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to revoke this consent?
-                              </DialogDescription>
-                            </DialogHeader>
-                            <Alert variant="destructive">
-                              <AlertDescription>
-                                Once revoked, {consent.grantedTo} will no longer have access to the shared data.
-                              </AlertDescription>
-                            </Alert>
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                onClick={() => setRevokeId(null)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => handleRevoke(consent.id)}
-                              >
-                                Revoke Consent
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
+          <View />
         </div>
       </main>
     </div>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Sidebar } from '@/components/Sidebar'
 import { PageHeader } from '@/components/PageHeader'
@@ -137,6 +139,19 @@ function PatientsContent() {
 }
 
 export default function PatientsPage() {
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && user?.role === 'patient') {
+      router.replace('/dashboard')
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading || user?.role === 'patient') {
+    return null
+  }
+
   return (
     <ProtectedRoute>
       <PatientsContent />

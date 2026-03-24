@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { isAuthenticated } from '@/lib/auth'
+import { useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -10,18 +10,14 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter()
-  const [isAuthed, setIsAuthed] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const pathname = usePathname()
+  const { isAuthenticated, isLoading } = useAuth()
 
   useEffect(() => {
-    const authed = isAuthenticated()
-    setIsAuthed(authed)
-    setIsLoading(false)
-
-    if (!authed) {
+    if (!isLoading && !isAuthenticated && pathname !== '/login') {
       router.push('/login')
     }
-  }, [router])
+  }, [isLoading, isAuthenticated, router, pathname])
 
   if (isLoading) {
     return (
@@ -34,7 +30,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  if (!isAuthed) {
+  if (!isAuthenticated) {
     return null
   }
 

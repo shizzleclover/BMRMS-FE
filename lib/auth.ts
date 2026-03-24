@@ -56,20 +56,3 @@ export async function logout(): Promise<void> {
   }
 }
 
-export function getCurrentUser(): User | null {
-  if (typeof window === 'undefined') return null
-
-  const userJson = localStorage.getItem('auth-user')
-  if (!userJson) return null
-
-  try {
-    return JSON.parse(userJson)
-  } catch {
-    return null
-  }
-}
-
-export function isAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false
-  return !!localStorage.getItem('auth-token')
-}

@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { login } from '@/lib/auth'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,8 +23,8 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const user = await login(email, password)
-      if (user) {
+      const success = await login(email, password)
+      if (success) {
         router.push('/dashboard')
       } else {
         setError('Invalid email or password')
