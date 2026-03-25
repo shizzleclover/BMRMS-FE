@@ -15,6 +15,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { User } from '@/lib/auth'
 import { getPatients } from '@/lib/patients'
 import { getConsents, getAccessLevelLabel } from '@/lib/consent'
+import { getPatientRecords, MedicalRecordSummary } from '@/lib/records'
 import { Users, FileText, CheckCircle, Clock, ArrowRight, ShieldCheck, Activity } from 'lucide-react'
 
 // ----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import { Users, FileText, CheckCircle, Clock, ArrowRight, ShieldCheck, Activity 
 function PatientDashboard({ user }: { user: User }) {
   const [activeConsents, setActiveConsents] = useState(0)
   const [recentConsents, setRecentConsents] = useState<any[]>([])
+  const [recentRecords, setRecentRecords] = useState<MedicalRecordSummary[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +37,11 @@ function PatientDashboard({ user }: { user: User }) {
           .slice(0, 5)
 
         setRecentConsents(sorted)
+
+        if (user.patientId) {
+          const records = await getPatientRecords(user.patientId)
+          setRecentRecords(records.slice(0, 5))
+        }
       } catch (err) {
         console.error('Patient dashboard fetch error:', err)
       }
@@ -73,6 +80,50 @@ function PatientDashboard({ user }: { user: User }) {
               Manage Consents <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>My Medical Records</CardTitle>
+            <CardDescription>Latest records stored for your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentRecords.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                No records available yet.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead className="font-semibold text-foreground">Record</TableHead>
+                    <TableHead className="font-semibold text-foreground">Type</TableHead>
+                    <TableHead className="font-semibold text-foreground">Doctor</TableHead>
+                    <TableHead className="font-semibold text-foreground">Visit Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentRecords.map((r) => (
+                    <TableRow key={r.id} className="border-b border-border hover:bg-muted/50">
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex flex-col">
+                          <span>{r.recordNumber}</span>
+                          <span className="text-xs text-muted-foreground truncate">{r.title}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{r.recordType}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{r.doctorName || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {new Date(r.visitDate).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
         </Card>
       </div>
 

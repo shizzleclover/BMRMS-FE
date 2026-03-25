@@ -15,6 +15,8 @@ export interface PatientRecord {
   lastVisit: string
   status: 'active' | 'inactive'
   syncStatus: 'synced' | 'pending' | 'failed'
+  // Only used for UI role-scoping (doctor/admin vs patient)
+  primaryClinicId?: string
 }
 
 // Map backend patient schema to frontend generic PatientRecord interface
@@ -34,6 +36,9 @@ const mapPatient = (backendPatient: any): PatientRecord => {
     lastVisit: backendPatient.updatedAt || backendPatient.createdAt,
     status: backendPatient.status || 'active',
     syncStatus: backendPatient.syncStatus || 'synced',
+    primaryClinicId: backendPatient.primaryClinic?._id
+      ? String(backendPatient.primaryClinic._id)
+      : (backendPatient.primaryClinic ? String(backendPatient.primaryClinic) : undefined),
   }
 }
 

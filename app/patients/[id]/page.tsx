@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getPatientById, updatePatient, PatientRecord } from '@/lib/patients'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Eye } from 'lucide-react'
 
 function PatientDetailContent() {
   const params = useParams()
@@ -124,6 +124,13 @@ function PatientDetailContent() {
                 </Button>
               }
             />
+
+            <Link href={`/patients/${patient.id}/records`}>
+              <Button variant="outline" className="hidden sm:inline-flex gap-2">
+                <Eye className="w-4 h-4" />
+                View Records
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

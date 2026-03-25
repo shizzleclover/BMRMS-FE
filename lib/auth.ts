@@ -7,6 +7,8 @@ export interface User {
   role: 'doctor' | 'patient' | 'admin'
   department?: string
   avatar?: string
+  patientId?: string
+  clinicId?: string
 }
 
 // Map backend user schema to frontend generic User interface
@@ -17,7 +19,9 @@ const mapUser = (backendUser: any): User => {
     email: backendUser.email,
     role: backendUser.role,
     department: backendUser.department || undefined,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.firstName}`
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.firstName}`,
+    patientId: backendUser.patientId ? String(backendUser.patientId) : undefined,
+    clinicId: backendUser.clinicId ? String(backendUser.clinicId) : undefined,
   }
 }
 
