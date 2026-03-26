@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { User, login as apiLogin, logout as apiLogout } from '@/lib/auth'
+import { fetchApi } from '@/lib/api'
 
 interface AuthContextType {
   user: User | null
@@ -35,10 +36,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('auth-token')
           localStorage.removeItem('auth-user')
         }
-      } else {
-        setUser(null)
       }
-      setIsLoading(false)
+
+      // Always refresh profile from backend so refs like patientId/clinicId are correct.
+      ;(async () => {
+        if (!storedToken) {
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
+
+        try {
+          const profile = await fetchApi<any>('/auth/profile')
+          if (profile) {
+            const mapped: User = {
+              id: profile._id,
+              name: `${profile.firstName} ${profile.lastName}`,
+              email: profile.email,
+              role: profile.role,
+              department: profile.department || undefined,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.firstName}`,
+              patientId: profile.patientId ? String(profile.patientId) : undefined,
+              clinicId: profile.clinicId ? String(profile.clinicId) : undefined,
+            }
+            setUser(mapped)
+            localStorage.setItem('auth-user', JSON.stringify(mapped))
+          }
+        } catch {
+          // If refresh fails, keep whatever we had (or clear if missing).
+          if (!storedUserJson) {
+            setUser(null)
+            localStorage.removeItem('auth-token')
+            localStorage.removeItem('auth-user')
+          }
+        } finally {
+          setIsLoading(false)
+        }
+      })()
     }
 
     initializeAuth()

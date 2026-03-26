@@ -28,6 +28,14 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
+      const normalizePhone = (raw?: string) => {
+        const p = (raw || '').trim()
+        if (!p) return undefined
+        // If phone starts with 0 (common local format), convert to +<rest> to satisfy backend regex.
+        if (p.startsWith('0') && !p.startsWith('+')) return `+${p.slice(1)}`
+        return p
+      }
+
       await fetchApi<any>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
@@ -36,7 +44,7 @@ export default function RegisterPage() {
           email: email.trim().toLowerCase(),
           password,
           role: 'patient',
-          phone: phone.trim() || undefined,
+          phone: normalizePhone(phone) || undefined,
         }),
       })
 

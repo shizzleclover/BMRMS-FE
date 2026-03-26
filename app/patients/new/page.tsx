@@ -57,6 +57,13 @@ function NewPatientContent() {
         setIsSaving(true)
 
         try {
+            const normalizePhone = (raw?: string) => {
+                const p = (raw || '').trim()
+                if (!p) return undefined
+                if (p.startsWith('0') && !p.startsWith('+')) return `+${p.slice(1)}`
+                return p
+            }
+
             // Step 1: Register the user account
             await fetchApi<any>('/auth/register', {
                 method: 'POST',
@@ -66,7 +73,7 @@ function NewPatientContent() {
                     email: form.email,
                     password: form.password,
                     role: 'patient',
-                    phone: form.phone || undefined,
+                    phone: normalizePhone(form.phone) || undefined,
                     dateOfBirth: form.dateOfBirth || undefined,
                     gender: form.gender || undefined,
                 }),

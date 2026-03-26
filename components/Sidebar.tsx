@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, CheckCircle, Settings, LogOut, Menu, X, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, FileText, CheckCircle, Settings, LogOut, Menu, X, ShieldCheck, UserPlus, Building2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
@@ -21,6 +21,11 @@ function getNavItems(role: string): NavItem[] {
 
   if (role === 'admin' || role === 'doctor') {
     items.push({ href: '/patients', label: 'Patient Records', icon: FileText })
+  }
+
+  if (role === 'admin') {
+    items.push({ href: '/clinics/new', label: 'Clinics', icon: Building2 })
+    items.push({ href: '/doctors/new', label: 'Add Doctor', icon: UserPlus })
   }
 
   if (role === 'patient') {

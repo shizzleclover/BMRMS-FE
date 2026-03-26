@@ -83,6 +83,17 @@ function PatientDashboard({ user }: { user: User }) {
         </Card>
       </div>
 
+      {user.patientId && (
+        <div className="mt-4">
+          <Link href={`/patients/${user.patientId}`}>
+            <Button variant="outline" className="w-full md:w-auto gap-2">
+              <FileText className="w-4 h-4" />
+              View My Profile
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <div className="mt-6">
         <Card className="border-border">
           <CardHeader>
