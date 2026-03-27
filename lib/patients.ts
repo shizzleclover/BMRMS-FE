@@ -17,6 +17,8 @@ export interface PatientRecord {
   syncStatus: 'synced' | 'pending' | 'failed'
   // Only used for UI role-scoping (doctor/admin vs patient)
   primaryClinicId?: string
+  /** Clinics this patient is assigned to (for doctor access checks) */
+  assignedClinicIds?: string[]
 }
 
 // Map backend patient schema to frontend generic PatientRecord interface
@@ -39,12 +41,15 @@ const mapPatient = (backendPatient: any): PatientRecord => {
     primaryClinicId: backendPatient.primaryClinic?._id
       ? String(backendPatient.primaryClinic._id)
       : (backendPatient.primaryClinic ? String(backendPatient.primaryClinic) : undefined),
+    assignedClinicIds: (backendPatient.assignedClinics || [])
+      .map((ac: any) => (ac.clinicId?._id ? String(ac.clinicId._id) : ac.clinicId ? String(ac.clinicId) : ''))
+      .filter(Boolean),
   }
 }
 
 export async function getPatients(): Promise<PatientRecord[]> {
   try {
-    const data = await fetchApi<any>('/patients')
+    const data = await fetchApi<any>('/patients?limit=200')
     // Backend returns paginated response { data: [...], pagination: {...} } or just the array depending on route wrap
     // Here we handle the `data` wrapper which might be returned from `api.ts` extraction
     const patientsList = Array.isArray(data) ? data : (data.patients || data.data || [])

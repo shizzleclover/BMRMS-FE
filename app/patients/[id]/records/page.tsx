@@ -46,7 +46,13 @@ function RecordsContent() {
           const found = await getPatientById(patientId)
           setPatient(found)
 
-          if (!found?.primaryClinicId || !user.clinicId || found.primaryClinicId !== user.clinicId) {
+          const inClinic =
+            !!found &&
+            !!user.clinicId &&
+            (found.primaryClinicId === user.clinicId ||
+              (found.assignedClinicIds || []).includes(user.clinicId))
+
+          if (!inClinic) {
             setForbidden(true)
             setRecords([])
             return

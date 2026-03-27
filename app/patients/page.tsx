@@ -16,32 +16,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getPatients, searchPatients, PatientRecord } from '@/lib/patients'
 import { Plus, Search, Eye } from 'lucide-react'
 
-function PatientsContent({ userRole, clinicId }: { userRole: string; clinicId?: string }) {
+function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) {
   const [patients, setPatients] = useState<PatientRecord[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-
-  const scopePatients = (list: PatientRecord[]) => {
-    if (userRole === 'doctor') {
-      if (!clinicId) return []
-      return list.filter((p) => p.primaryClinicId === clinicId)
-    }
-    // admin sees all; patient route redirects away
-    return list
-  }
 
   useEffect(() => {
     const fetchAllPatients = async () => {
       setIsLoading(true)
       const allPatients = await getPatients()
-      setPatients(scopePatients(allPatients))
+      setPatients(allPatients)
       setIsLoading(false)
     }
 
     const fetchSearchPatients = async () => {
       setIsLoading(true)
       const results = await searchPatients(searchQuery)
-      setPatients(scopePatients(results))
+      setPatients(results)
       setIsLoading(false)
     }
 
@@ -163,7 +154,7 @@ export default function PatientsPage() {
 
   return (
     <ProtectedRoute>
-      <PatientsContent userRole={user?.role || ''} clinicId={user?.clinicId} />
+      <PatientsContent userRole={user?.role || ''} />
     </ProtectedRoute>
   )
 }

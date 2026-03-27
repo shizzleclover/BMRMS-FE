@@ -34,7 +34,8 @@ export default function DoctorsPage() {
       setIsLoading(true)
       try {
         const resp = await fetchApi<any>('/clinics?limit=100')
-        const clinics = resp?.clinics || resp?.data || []
+        // GET /clinics returns { data: Clinic[] }; fetchApi unwraps to the array directly.
+        const clinics = Array.isArray(resp) ? resp : (resp?.clinics || resp?.data || [])
         const flattened: DoctorRow[] = []
 
         for (const clinic of clinics) {
@@ -42,10 +43,15 @@ export default function DoctorsPage() {
           const staff = detail?.staff || []
           for (const member of staff) {
             if (member?.role !== 'doctor' || !member?.userId) continue
+            const u = member.userId
+            const uid = typeof u === 'object' && u !== null && '_id' in u ? String((u as any)._id) : String(u)
             flattened.push({
-              id: String(member.userId._id),
-              name: `${member.userId.firstName || ''} ${member.userId.lastName || ''}`.trim() || 'Unknown',
-              email: member.userId.email || '',
+              id: uid,
+              name:
+                typeof u === 'object' && u !== null && 'firstName' in u
+                  ? `${(u as any).firstName || ''} ${(u as any).lastName || ''}`.trim() || 'Unknown'
+                  : 'Unknown',
+              email: typeof u === 'object' && u !== null && 'email' in u ? String((u as any).email || '') : '',
               clinicName: clinic.name || 'Unknown clinic',
             })
           }
