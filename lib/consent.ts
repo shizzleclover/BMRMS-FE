@@ -76,6 +76,7 @@ export interface DoctorOption {
   id: string
   name: string
   email: string
+  clinicName?: string
 }
 
 /** Active doctors the patient can grant consent to (backend: GET /users/doctors). */
@@ -87,6 +88,10 @@ export async function getDoctorOptions(): Promise<DoctorOption[]> {
       id: String(u._id),
       name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Doctor',
       email: u.email || '',
+      clinicName:
+        u.clinicId && typeof u.clinicId === 'object' && u.clinicId.name
+          ? String(u.clinicId.name)
+          : '',
     }))
   } catch (error) {
     console.error('Error fetching doctors for consent:', error)

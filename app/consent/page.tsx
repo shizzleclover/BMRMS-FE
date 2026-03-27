@@ -223,7 +223,8 @@ function PatientConsentView() {
                         {doctorOptions.map((d) => (
                           <SelectItem key={d.id} value={d.id}>
                             {d.name}
-                            {d.email ? ` — ${d.email}` : ''}
+                            {d.clinicName ? ` — ${d.clinicName}` : ''}
+                            {d.email ? ` (${d.email})` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -277,6 +278,7 @@ function PatientConsentView() {
             <TableHeader>
               <TableRow className="border-b border-border">
                 <TableHead className="font-semibold text-foreground">Doctor</TableHead>
+                <TableHead className="font-semibold text-foreground">Clinic</TableHead>
                 <TableHead className="font-semibold text-foreground">Access Level</TableHead>
                 <TableHead className="font-semibold text-foreground">Scope</TableHead>
                 <TableHead className="font-semibold text-foreground">Granted</TableHead>
@@ -288,6 +290,7 @@ function PatientConsentView() {
               {consents.map((c) => (
                 <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="font-medium text-foreground">{c.grantedToName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{c.clinicName || '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
@@ -385,6 +388,7 @@ function DoctorConsentView() {
             <TableHeader>
               <TableRow className="border-b border-border">
                 <TableHead className="font-semibold text-foreground">Patient</TableHead>
+                <TableHead className="font-semibold text-foreground">Clinic</TableHead>
                 <TableHead className="font-semibold text-foreground">Access Level</TableHead>
                 <TableHead className="font-semibold text-foreground">Scope</TableHead>
                 <TableHead className="font-semibold text-foreground">Granted</TableHead>
@@ -397,6 +401,7 @@ function DoctorConsentView() {
               {consents.map((c) => (
                 <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="font-medium text-foreground">{c.patientName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{c.clinicName || '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
@@ -473,7 +478,8 @@ function AdminConsentView() {
             <TableHeader>
               <TableRow className="border-b border-border">
                 <TableHead className="font-semibold text-foreground">Patient</TableHead>
-                <TableHead className="font-semibold text-foreground">Granted To</TableHead>
+                <TableHead className="font-semibold text-foreground">Doctor</TableHead>
+                <TableHead className="font-semibold text-foreground">Clinic</TableHead>
                 <TableHead className="font-semibold text-foreground">Access</TableHead>
                 <TableHead className="font-semibold text-foreground">Scope</TableHead>
                 <TableHead className="font-semibold text-foreground">Date</TableHead>
@@ -486,6 +492,7 @@ function AdminConsentView() {
                 <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
                   <TableCell className="font-medium text-foreground">{c.patientName}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{c.grantedToName}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{c.clinicName || '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{getScopeLabel(c.scope)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(c.grantedDate).toLocaleDateString()}</TableCell>
