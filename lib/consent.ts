@@ -72,6 +72,28 @@ const mapConsent = (raw: any): Consent => {
   }
 }
 
+export interface DoctorOption {
+  id: string
+  name: string
+  email: string
+}
+
+/** Active doctors the patient can grant consent to (backend: GET /users/doctors). */
+export async function getDoctorOptions(): Promise<DoctorOption[]> {
+  try {
+    const raw = await fetchApi<any>('/users/doctors')
+    const list = Array.isArray(raw) ? raw : (raw?.data || [])
+    return (list as any[]).map((u) => ({
+      id: String(u._id),
+      name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Doctor',
+      email: u.email || '',
+    }))
+  } catch (error) {
+    console.error('Error fetching doctors for consent:', error)
+    return []
+  }
+}
+
 export async function getConsents(): Promise<Consent[]> {
   try {
     const data = await fetchApi<any>('/consent/my-consents')

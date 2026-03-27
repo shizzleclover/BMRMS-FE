@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { SyncStatus } from '@/components/SyncStatus'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
@@ -26,6 +25,7 @@ import {
   getConsents,
   revokeConsent,
   createConsent,
+  getDoctorOptions,
   Consent,
   getAccessLevelLabel,
   getScopeLabel,
@@ -122,6 +122,8 @@ function PatientConsentView() {
   const [revokeTarget, setRevokeTarget] = useState<Consent | null>(null)
   const [showGrant, setShowGrant] = useState(false)
   const [doctorId, setDoctorId] = useState('')
+  const [doctorOptions, setDoctorOptions] = useState<{ id: string; name: string; email: string }[]>([])
+  const [doctorsLoading, setDoctorsLoading] = useState(false)
   const [accessLevel, setAccessLevel] = useState('read')
   const [isGranting, setIsGranting] = useState(false)
 
@@ -132,6 +134,22 @@ function PatientConsentView() {
   }
 
   useEffect(() => { refresh() }, [])
+
+  useEffect(() => {
+    if (!showGrant) return
+    let cancelled = false
+    ;(async () => {
+      setDoctorsLoading(true)
+      const opts = await getDoctorOptions()
+      if (!cancelled) {
+        setDoctorOptions(opts)
+        setDoctorsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showGrant])
 
   const handleGrant = async () => {
     if (!doctorId.trim()) return
@@ -164,7 +182,16 @@ function PatientConsentView() {
         description="Manage who can access your medical records"
         icon="🔐"
         action={
-          <Dialog open={showGrant} onOpenChange={setShowGrant}>
+          <Dialog
+            open={showGrant}
+            onOpenChange={(open) => {
+              setShowGrant(open)
+              if (!open) {
+                setDoctorId('')
+                setAccessLevel('read')
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
@@ -180,14 +207,28 @@ function PatientConsentView() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div>
-                  <Label htmlFor="doctorId">Doctor User ID</Label>
-                  <Input
-                    id="doctorId"
-                    value={doctorId}
-                    onChange={(e) => setDoctorId(e.target.value)}
-                    placeholder="Enter the doctor&apos;s user ID"
-                    className="mt-1"
-                  />
+                  <Label htmlFor="doctorSelect">Doctor</Label>
+                  {doctorsLoading ? (
+                    <p className="mt-2 text-sm text-muted-foreground">Loading doctors...</p>
+                  ) : doctorOptions.length === 0 ? (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      No doctors are registered yet. Ask your clinic admin to add doctor accounts first.
+                    </p>
+                  ) : (
+                    <Select value={doctorId || undefined} onValueChange={setDoctorId}>
+                      <SelectTrigger id="doctorSelect" className="mt-1">
+                        <SelectValue placeholder="Select a doctor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctorOptions.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                            {d.email ? ` — ${d.email}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="accessLevel">Access Level</Label>
@@ -204,7 +245,15 @@ function PatientConsentView() {
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button variant="ghost" onClick={() => setShowGrant(false)}>Cancel</Button>
-                  <Button onClick={handleGrant} disabled={isGranting || !doctorId.trim()}>
+                  <Button
+                    onClick={handleGrant}
+                    disabled={
+                      isGranting ||
+                      !doctorId.trim() ||
+                      doctorsLoading ||
+                      doctorOptions.length === 0
+                    }
+                  >
                     {isGranting ? 'Granting...' : 'Grant Consent'}
                   </Button>
                 </div>
