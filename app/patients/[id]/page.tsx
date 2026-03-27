@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getPatientById, updatePatient, PatientRecord } from '@/lib/patients'
-import { ArrowLeft, Save, Eye } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Plus } from 'lucide-react'
+import { useAuth } from '@/components/AuthProvider'
 
 function PatientDetailContent() {
   const params = useParams()
@@ -25,6 +26,7 @@ function PatientDetailContent() {
   const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState<PatientRecord | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -131,6 +133,15 @@ function PatientDetailContent() {
                 View Records
               </Button>
             </Link>
+
+            {(user?.role === 'doctor' || user?.role === 'admin') && (
+              <Link href={`/patients/${patient.id}/records/new`}>
+                <Button className="hidden sm:inline-flex gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Record
+                </Button>
+              </Link>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

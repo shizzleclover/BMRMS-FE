@@ -11,6 +11,13 @@ export interface User {
   clinicId?: string
 }
 
+const getRefId = (value: any): string | undefined => {
+  if (!value) return undefined
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value._id) return String(value._id)
+  return undefined
+}
+
 // Map backend user schema to frontend generic User interface
 const mapUser = (backendUser: any): User => {
   return {
@@ -20,8 +27,8 @@ const mapUser = (backendUser: any): User => {
     role: backendUser.role,
     department: backendUser.department || undefined,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.firstName}`,
-    patientId: backendUser.patientId ? String(backendUser.patientId) : undefined,
-    clinicId: backendUser.clinicId ? String(backendUser.clinicId) : undefined,
+    patientId: getRefId(backendUser.patientId),
+    clinicId: getRefId(backendUser.clinicId),
   }
 }
 

@@ -71,7 +71,7 @@ function PatientsContent({ userRole, clinicId }: { userRole: string; clinicId?: 
               <Link href="/patients/new">
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
-                  New Record
+                  New Patient
                 </Button>
               </Link>
             }

@@ -15,6 +15,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const getRefId = (value: any): string | undefined => {
+  if (!value) return undefined
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value._id) return String(value._id)
+  return undefined
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -56,8 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               role: profile.role,
               department: profile.department || undefined,
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.firstName}`,
-              patientId: profile.patientId ? String(profile.patientId) : undefined,
-              clinicId: profile.clinicId ? String(profile.clinicId) : undefined,
+              patientId: getRefId(profile.patientId),
+              clinicId: getRefId(profile.clinicId),
             }
             setUser(mapped)
             localStorage.setItem('auth-user', JSON.stringify(mapped))

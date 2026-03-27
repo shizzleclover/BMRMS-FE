@@ -40,3 +40,26 @@ export async function getPatientRecords(patientId: string): Promise<MedicalRecor
   }
 }
 
+export interface CreateMedicalRecordPayload {
+  patientId: string
+  recordType: 'consultation' | 'diagnosis' | 'prescription' | 'lab_result' | 'imaging' | 'surgery' | 'vaccination' | 'other'
+  title: string
+  description?: string
+  file: File
+}
+
+export async function createMedicalRecord(payload: CreateMedicalRecordPayload): Promise<any> {
+  const form = new FormData()
+  form.append('patientId', payload.patientId)
+  form.append('recordType', payload.recordType)
+  form.append('title', payload.title)
+  if (payload.description) form.append('description', payload.description)
+  form.append('file', payload.file)
+
+  // fetchApi handles FormData by not setting Content-Type
+  return await fetchApi<any>('/records', {
+    method: 'POST',
+    body: form,
+  })
+}
+
