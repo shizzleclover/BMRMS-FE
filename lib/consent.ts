@@ -99,15 +99,26 @@ export async function getDoctorOptions(): Promise<DoctorOption[]> {
   }
 }
 
-export async function getConsents(): Promise<Consent[]> {
+export type FetchConsentsResult = { consents: Consent[]; error: string | null }
+
+/** Loads consents from the backend; includes error message if the request failed (not an empty list). */
+export async function fetchConsents(): Promise<FetchConsentsResult> {
   try {
     const data = await fetchApi<any>('/consent/my-consents')
     const consentsList = Array.isArray(data) ? data : (data.data || [])
-    return consentsList.map(mapConsent)
-  } catch (error) {
+    return { consents: consentsList.map(mapConsent), error: null }
+  } catch (error: any) {
     console.error('Error fetching consents:', error)
-    return []
+    return {
+      consents: [],
+      error: error?.message || 'Could not load consents from the server.',
+    }
   }
+}
+
+export async function getConsents(): Promise<Consent[]> {
+  const { consents } = await fetchConsents()
+  return consents
 }
 
 export async function getConsentById(id: string): Promise<Consent | undefined> {

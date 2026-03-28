@@ -49,9 +49,12 @@ export function SyncStatus() {
   }
 
   return (
-    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 gap-1 flex items-center w-fit">
-      <AlertCircle className="w-3 h-3" />
-      Syncing ({pendingChanges})
+    <Badge
+      title="These are failed actions saved in this browser for retry — they were not confirmed by the server. Open the browser console or clear the queue after fixing your connection."
+      className="bg-yellow-100 text-yellow-800 border-yellow-300 gap-1 flex items-center w-fit max-w-[min(100%,14rem)] text-left whitespace-normal h-auto py-1"
+    >
+      <AlertCircle className="w-3 h-3 shrink-0" />
+      <span className="text-[10px] leading-tight">Queued locally ({pendingChanges})</span>
     </Badge>
   )
 }

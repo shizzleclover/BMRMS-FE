@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/components/AuthProvider'
 import {
   getConsents,
+  fetchConsents,
   revokeConsent,
   createConsent,
   getDoctorOptions,
@@ -126,6 +127,7 @@ function PatientConsentView() {
   const [doctorsLoading, setDoctorsLoading] = useState(false)
   const [accessLevel, setAccessLevel] = useState('read')
   const [isGranting, setIsGranting] = useState(false)
+  const [grantError, setGrantError] = useState('')
 
   const refresh = async () => {
     setIsLoading(true)
@@ -154,12 +156,17 @@ function PatientConsentView() {
   const handleGrant = async () => {
     if (!doctorId.trim()) return
     setIsGranting(true)
+    setGrantError('')
     const result = await createConsent(doctorId.trim(), accessLevel)
     if (result) {
       await refresh()
       setShowGrant(false)
       setDoctorId('')
       setAccessLevel('read')
+    } else {
+      setGrantError(
+        'Consent was not saved on the server. Check your network, login, and NEXT_PUBLIC_API_URL. If the yellow badge says "Queued locally", those requests failed and are not on the server yet.'
+      )
     }
     setIsGranting(false)
   }
@@ -189,6 +196,7 @@ function PatientConsentView() {
               if (!open) {
                 setDoctorId('')
                 setAccessLevel('read')
+                setGrantError('')
               }
             }}
           >
@@ -206,6 +214,11 @@ function PatientConsentView() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 pt-2">
+                {grantError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{grantError}</AlertDescription>
+                  </Alert>
+                )}
                 <div>
                   <Label htmlFor="doctorSelect">Doctor</Label>
                   {doctorsLoading ? (
@@ -352,15 +365,28 @@ function PatientConsentView() {
 function DoctorConsentView() {
   const [consents, setConsents] = useState<Consent[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null)
 
+  const load = async () => {
+    setIsLoading(true)
+    setLoadError(null)
+    const { consents: list, error } = await fetchConsents()
+    setConsents(list)
+    setLoadError(error)
+    setIsLoading(false)
+  }
+
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true)
-      setConsents(await getConsents())
-      setIsLoading(false)
-    }
     load()
+  }, [])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   const statusMap = (s: string) =>
@@ -372,15 +398,34 @@ function DoctorConsentView() {
         title="Patient Consents"
         description="Patients who have granted you access to their records"
         icon="📋"
+        action={
+          <Button variant="outline" size="sm" onClick={() => load()} disabled={isLoading}>
+            Refresh
+          </Button>
+        }
       />
 
       <div className="flex justify-end"><SyncStatus /></div>
 
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+      )}
+
       {isLoading ? (
         <div className="p-8 text-center text-muted-foreground">Loading consents...</div>
       ) : consents.length === 0 ? (
-        <Card className="border-border p-8 text-center text-muted-foreground">
-          No patients have granted you consent yet.
+        <Card className="border-border p-8 text-center text-muted-foreground space-y-2">
+          <p>No patients have granted you consent yet.</p>
+          {!loadError && (
+            <p className="text-xs max-w-md mx-auto">
+              You must be logged in as the same doctor account the patient chose when granting access. If a patient just granted consent, tap Refresh or leave this tab and return. Deploy the latest backend so consent is saved even if blockchain is misconfigured.
+            </p>
+          )}
+          {loadError && (
+            <p className="text-xs max-w-md mx-auto">Fix the error above, then tap Refresh.</p>
+          )}
         </Card>
       ) : (
         <Card className="border-border overflow-hidden">
