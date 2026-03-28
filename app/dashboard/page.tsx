@@ -250,7 +250,7 @@ function DoctorDashboard({ user }: { user: User }) {
         <StatCard
           title="My Patients"
           value={stats.totalPatients}
-          description="Patients in the system"
+          description="Clinic roster plus patients who granted you consent"
           icon={<Users className="w-5 h-5" />}
         />
         <StatCard

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getPatients, searchPatients, PatientRecord } from '@/lib/patients'
-import { Plus, Search, Eye } from 'lucide-react'
+import { Search, Eye, UserPlus } from 'lucide-react'
 
 function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) {
   const [patients, setPatients] = useState<PatientRecord[]>([])
@@ -56,15 +56,23 @@ function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) 
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           <PageHeader
             title="Patient Records"
-            description="Manage and view patient medical records"
+            description={
+              userRole === 'doctor'
+                ? 'Open a patient from the list, then use Add record on their profile to upload a file. The big registration form is only for brand-new logins, not medical documents.'
+                : userRole === 'admin'
+                  ? 'View patients or register a new patient account.'
+                  : 'Manage and view patient medical records'
+            }
             icon="👥"
             action={
-              <Link href="/patients/new">
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  New Patient
-                </Button>
-              </Link>
+              userRole === 'admin' ? (
+                <Link href="/patients/new">
+                  <Button className="gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Register new patient
+                  </Button>
+                </Link>
+              ) : undefined
             }
           />
 
@@ -132,6 +140,16 @@ function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) 
               </Table>
             )}
           </Card>
+
+          {userRole === 'doctor' && (
+            <p className="text-xs text-muted-foreground text-center px-2">
+              To create a new patient login (account), use{' '}
+              <Link href="/patients/new" className="text-primary underline">
+                register patient account
+              </Link>
+              . For clinical files, always start from a patient row above.
+            </p>
+          )}
         </div>
       </main>
     </div>
