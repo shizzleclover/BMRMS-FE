@@ -14,7 +14,7 @@ import { getPatientById, PatientRecord } from '@/lib/patients'
 import { getPatientRecords, MedicalRecordSummary } from '@/lib/records'
 import { SyncStatus } from '@/components/SyncStatus'
 
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
 
 function RecordsContent() {
   const params = useParams()
@@ -25,6 +25,7 @@ function RecordsContent() {
   const [records, setRecords] = useState<MedicalRecordSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
+  const [accessMessage, setAccessMessage] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -32,39 +33,34 @@ function RecordsContent() {
 
       setIsLoading(true)
       setForbidden(false)
+      setAccessMessage('')
 
       try {
         if (user.role === 'patient') {
           if (!user.patientId || user.patientId !== patientId) {
             setForbidden(true)
+            setAccessMessage('You can only view your own records.')
             setRecords([])
+            setIsLoading(false)
             return
           }
         }
 
-        if (user.role === 'doctor') {
+        if (user.role === 'doctor' || user.role === 'admin') {
           const found = await getPatientById(patientId)
           setPatient(found)
-
-          const inClinic =
-            !!found &&
-            !!user.clinicId &&
-            (found.primaryClinicId === user.clinicId ||
-              (found.assignedClinicIds || []).includes(user.clinicId))
-
-          if (!inClinic) {
-            setForbidden(true)
-            setRecords([])
-            return
-          }
         }
 
-        // Admin: show all, Doctor: already gated above, Patient: already gated above
         const recs = await getPatientRecords(patientId)
         setRecords(recs)
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error loading records:', e)
         setRecords([])
+        setForbidden(true)
+        setAccessMessage(
+          e?.message ||
+            'You are not allowed to view these records. Doctors need active patient consent or clinic assignment.'
+        )
       } finally {
         setIsLoading(false)
       }
@@ -94,7 +90,7 @@ function RecordsContent() {
           {forbidden ? (
             <Card className="border-border">
               <CardContent className="p-6 text-muted-foreground">
-                You are not authorized to view these records.
+                {accessMessage || 'You are not authorized to view these records.'}
               </CardContent>
             </Card>
           ) : isLoading ? (
@@ -109,7 +105,17 @@ function RecordsContent() {
               </CardHeader>
               <CardContent>
                 {records.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">No records found.</div>
+                  <div className="p-4 text-center text-muted-foreground space-y-3">
+                    <p>No records found.</p>
+                    {(user?.role === 'doctor' || user?.role === 'admin') && (
+                      <Link href={`/patients/${patientId}/records/new`}>
+                        <Button size="sm" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Add record
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>

@@ -30,14 +30,8 @@ const mapRecord = (raw: any): MedicalRecordSummary => {
 
 export async function getPatientRecords(patientId: string): Promise<MedicalRecordSummary[]> {
   if (!patientId) return []
-
-  try {
-    const records = await fetchApi<any[]>(`/records/patient/${patientId}`)
-    return (Array.isArray(records) ? records : []).map(mapRecord)
-  } catch (error) {
-    console.error('Error fetching patient records:', error)
-    return []
-  }
+  const records = await fetchApi<any[]>(`/records/patient/${patientId}`)
+  return (Array.isArray(records) ? records : []).map(mapRecord)
 }
 
 export interface CreateMedicalRecordPayload {

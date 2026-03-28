@@ -103,8 +103,8 @@ function NewPatientContent() {
                             </Button>
                         </Link>
                         <PageHeader
-                            title="New Patient Record"
-                            description="Register a new patient in the system"
+                            title="Register new patient"
+                            description="Create a new patient account (not a medical file upload)"
                             icon="➕"
                         />
                     </div>

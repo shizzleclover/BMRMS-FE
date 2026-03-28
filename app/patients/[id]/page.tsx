@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Sidebar } from '@/components/Sidebar'
@@ -18,7 +18,6 @@ import { useAuth } from '@/components/AuthProvider'
 
 function PatientDetailContent() {
   const params = useParams()
-  const router = useRouter()
   const patientId = params.id as string
 
   const [patient, setPatient] = useState<PatientRecord | null>(null)
@@ -99,48 +98,50 @@ function PatientDetailContent() {
       <main className="flex-1 overflow-auto">
         <div className="md:ml-0 ml-12 p-6 space-y-6">
           {/* Header with back button */}
-          <div className="flex items-center gap-4">
-            <Link href="/patients">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <PageHeader
-              title={patient.name}
-              description={`Patient ID: ${patient.id}`}
-              icon="👤"
-              action={
-                <Button
-                  onClick={() => {
-                    if (isEditing) {
-                      handleSave()
-                    } else {
-                      setIsEditing(true)
-                    }
-                  }}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isEditing ? (isSaving ? 'Saving...' : 'Save Changes') : 'Edit'}
-                </Button>
-              }
-            />
-
-            <Link href={`/patients/${patient.id}/records`}>
-              <Button variant="outline" className="hidden sm:inline-flex gap-2">
-                <Eye className="w-4 h-4" />
-                View Records
-              </Button>
-            </Link>
-
-            {(user?.role === 'doctor' || user?.role === 'admin') && (
-              <Link href={`/patients/${patient.id}/records/new`}>
-                <Button className="hidden sm:inline-flex gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Record
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-start gap-3">
+              <Link href="/patients">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
+              <PageHeader
+                title={patient.name}
+                description={`Patient ID: ${patient.id}`}
+                icon="👤"
+                action={
+                  <Button
+                    onClick={() => {
+                      if (isEditing) {
+                        handleSave()
+                      } else {
+                        setIsEditing(true)
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isEditing ? (isSaving ? 'Saving...' : 'Save Changes') : 'Edit'}
+                  </Button>
+                }
+              />
+            </div>
+            {(user?.role === 'doctor' || user?.role === 'admin') && (
+              <div className="flex flex-wrap gap-2 md:pl-14">
+                <Link href={`/patients/${patient.id}/records`}>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Eye className="w-4 h-4" />
+                    View records
+                  </Button>
+                </Link>
+                <Link href={`/patients/${patient.id}/records/new`}>
+                  <Button size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add record
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
 
