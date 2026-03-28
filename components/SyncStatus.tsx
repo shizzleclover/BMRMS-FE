@@ -1,34 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle, Wifi, WifiOff } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { AlertCircle, CheckCircle, WifiOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { clearLocalSyncQueue } from '@/lib/consent'
 
 export function SyncStatus() {
   const [isOnline, setIsOnline] = useState(true)
   const [pendingChanges, setPendingChanges] = useState(0)
 
-  useEffect(() => {
-    // Check initial online status
-    setIsOnline(navigator.onLine)
+  const refreshCount = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const queue = localStorage.getItem('sync-queue')
+    setPendingChanges(queue ? JSON.parse(queue).length : 0)
+  }, [])
 
-    // Listen for online/offline events
+  useEffect(() => {
+    setIsOnline(navigator.onLine)
+    refreshCount()
+
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-
-    // Get pending changes from localStorage
-    const queue = localStorage.getItem('sync-queue')
-    const changes = queue ? JSON.parse(queue).length : 0
-    setPendingChanges(changes)
+    window.addEventListener('sync-queue-changed', refreshCount)
 
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('sync-queue-changed', refreshCount)
     }
-  }, [])
+  }, [refreshCount])
 
   if (isOnline && pendingChanges === 0) {
     return (
@@ -49,12 +53,26 @@ export function SyncStatus() {
   }
 
   return (
-    <Badge
-      title="These are failed actions saved in this browser for retry — they were not confirmed by the server. Open the browser console or clear the queue after fixing your connection."
-      className="bg-yellow-100 text-yellow-800 border-yellow-300 gap-1 flex items-center w-fit max-w-[min(100%,14rem)] text-left whitespace-normal h-auto py-1"
-    >
-      <AlertCircle className="w-3 h-3 shrink-0" />
-      <span className="text-[10px] leading-tight">Queued locally ({pendingChanges})</span>
-    </Badge>
+    <div className="flex flex-col items-end gap-1 max-w-[min(100%,16rem)]">
+      <Badge
+        title="Old failed requests stuck in this browser only — they never reached the server. Clear after fixing API URL or login."
+        className="bg-yellow-100 text-yellow-800 border-yellow-300 gap-1 flex items-center w-fit text-left whitespace-normal h-auto py-1"
+      >
+        <AlertCircle className="w-3 h-3 shrink-0" />
+        <span className="text-[10px] leading-tight">Queued locally ({pendingChanges})</span>
+      </Badge>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 text-[10px] text-muted-foreground"
+        onClick={() => {
+          clearLocalSyncQueue()
+          setPendingChanges(0)
+        }}
+      >
+        Clear local queue
+      </Button>
+    </div>
   )
 }

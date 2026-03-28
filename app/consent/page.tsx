@@ -157,24 +157,28 @@ function PatientConsentView() {
     if (!doctorId.trim()) return
     setIsGranting(true)
     setGrantError('')
-    const result = await createConsent(doctorId.trim(), accessLevel)
-    if (result) {
+    try {
+      await createConsent(doctorId.trim(), accessLevel)
       await refresh()
       setShowGrant(false)
       setDoctorId('')
       setAccessLevel('read')
-    } else {
+    } catch (e: any) {
       setGrantError(
-        'Consent was not saved on the server. Check your network, login, and NEXT_PUBLIC_API_URL. If the yellow badge says "Queued locally", those requests failed and are not on the server yet.'
+        e?.message ||
+          'Consent was not saved. Check login, NEXT_PUBLIC_API_URL on Vercel, and redeploy the latest backend.'
       )
+    } finally {
+      setIsGranting(false)
     }
-    setIsGranting(false)
   }
 
   const handleRevoke = async (consent: Consent) => {
-    const updated = await revokeConsent(consent.id, 'Revoked by patient')
-    if (updated) {
+    try {
+      const updated = await revokeConsent(consent.id, 'Revoked by patient')
       setConsents(prev => prev.map(c => (c.id === consent.id ? updated : c)))
+    } catch {
+      /* Error surfaced via fetch; list unchanged */
     }
     setRevokeTarget(null)
   }
@@ -420,7 +424,7 @@ function DoctorConsentView() {
           <p>No patients have granted you consent yet.</p>
           {!loadError && (
             <p className="text-xs max-w-md mx-auto">
-              You must be logged in as the same doctor account the patient chose when granting access. If a patient just granted consent, tap Refresh or leave this tab and return. Deploy the latest backend so consent is saved even if blockchain is misconfigured.
+              You must be logged in as the same doctor account the patient chose when granting access. If a patient just granted consent, tap Refresh. If you see &quot;Queued locally&quot;, those are failed browser-only attempts — tap Clear local queue, then have the patient grant again while you watch for a red error on their screen (that message comes from the server). Deploy the latest backend (consent saves even if blockchain fails).
             </p>
           )}
           {loadError && (
@@ -491,9 +495,11 @@ function AdminConsentView() {
   useEffect(() => { refresh() }, [])
 
   const handleRevoke = async (consent: Consent) => {
-    const updated = await revokeConsent(consent.id, 'Revoked by admin')
-    if (updated) {
+    try {
+      const updated = await revokeConsent(consent.id, 'Revoked by admin')
       setConsents(prev => prev.map(c => (c.id === consent.id ? updated : c)))
+    } catch {
+      /* Error surfaced via fetch */
     }
     setRevokeTarget(null)
   }

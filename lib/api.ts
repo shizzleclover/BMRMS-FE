@@ -39,12 +39,20 @@ export async function fetchApi<T>(endpoint: string, options: ApiOptions = {}): P
             return {} as T;
         }
 
-        const data = await response.json();
+        let data: { message?: string; data?: T } = {};
+        const text = await response.text();
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            throw new Error(
+                !response.ok
+                    ? `HTTP ${response.status} ${response.statusText}. Expected JSON from API — check NEXT_PUBLIC_API_URL.`
+                    : 'Invalid JSON from server'
+            );
+        }
 
         if (!response.ok) {
-            // If unauthorized, you might want to automatically clear the token
-            // and redirect to login, but we'll let auth.ts handle session logic for now.
-            throw new Error(data.message || 'An error occurred during the request');
+            throw new Error(data.message || `Request failed (${response.status})`);
         }
 
         return data.data as T;

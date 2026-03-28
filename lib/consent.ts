@@ -48,7 +48,7 @@ const mapConsent = (raw: any): Consent => {
   const granter = raw.grantedBy
 
   return {
-    id: raw._id,
+    id: String(raw._id ?? raw.id ?? ''),
     patientId: typeof raw.patientId === 'object' ? raw.patientId._id : raw.patientId,
     patientName: patientUser
       ? `${patientUser.firstName} ${patientUser.lastName}`
@@ -131,66 +131,70 @@ export async function getPatientConsents(patientId: string): Promise<Consent[]> 
   return consents.filter(c => c.patientId === patientId)
 }
 
-export async function createConsent(grantedToUserId: string, accessLevel: string, expiresAt?: string): Promise<Consent | null> {
-  try {
-    const backendData: any = {
-      grantedToUserId,
-      accessLevel: accessLevel || 'read',
-      scope: 'all_records',
-    }
-    if (expiresAt) {
-      backendData.expiresAt = expiresAt
-    }
+function enqueueConsentSync(item: Record<string, unknown>) {
+  if (typeof window === 'undefined' || navigator.onLine) return
+  const queue = localStorage.getItem('sync-queue') || '[]'
+  const syncQueue = JSON.parse(queue)
+  syncQueue.push(item)
+  localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
+  window.dispatchEvent(new Event('sync-queue-changed'))
+}
 
+/** Grants consent; throws with server message on failure (does not hide errors behind null). */
+export async function createConsent(
+  grantedToUserId: string,
+  accessLevel: string,
+  expiresAt?: string
+): Promise<Consent> {
+  const backendData: any = {
+    grantedToUserId,
+    accessLevel: accessLevel || 'read',
+    scope: 'all_records',
+  }
+  if (expiresAt) {
+    backendData.expiresAt = expiresAt
+  }
+
+  try {
     const response = await fetchApi<any>('/consent/grant', {
       method: 'POST',
       body: JSON.stringify(backendData),
     })
-
     return mapConsent(response)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating consent:', error)
-
-    if (typeof window !== 'undefined') {
-      const queue = localStorage.getItem('sync-queue') || '[]'
-      const syncQueue = JSON.parse(queue)
-      syncQueue.push({
-        type: 'create-consent',
-        data: { grantedToUserId, accessLevel, expiresAt },
-        timestamp: new Date().toISOString(),
-      })
-      localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
-    }
-
-    return null
+    enqueueConsentSync({
+      type: 'create-consent',
+      data: { grantedToUserId, accessLevel, expiresAt },
+      timestamp: new Date().toISOString(),
+    })
+    throw new Error(error?.message || 'Failed to grant consent')
   }
 }
 
-export async function revokeConsent(id: string, reason?: string): Promise<Consent | null> {
+export async function revokeConsent(id: string, reason?: string): Promise<Consent> {
   try {
     const response = await fetchApi<any>(`/consent/${id}`, {
       method: 'DELETE',
       body: JSON.stringify({ reason }),
     })
-
     return mapConsent(response)
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error revoking consent ${id}:`, error)
-
-    if (typeof window !== 'undefined') {
-      const queue = localStorage.getItem('sync-queue') || '[]'
-      const syncQueue = JSON.parse(queue)
-      syncQueue.push({
-        type: 'revoke-consent',
-        id,
-        reason,
-        timestamp: new Date().toISOString(),
-      })
-      localStorage.setItem('sync-queue', JSON.stringify(syncQueue))
-    }
-
-    return null
+    enqueueConsentSync({
+      type: 'revoke-consent',
+      id,
+      reason,
+      timestamp: new Date().toISOString(),
+    })
+    throw new Error(error?.message || 'Failed to revoke consent')
   }
+}
+
+export function clearLocalSyncQueue(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('sync-queue')
+  window.dispatchEvent(new Event('sync-queue-changed'))
 }
 
 export function getAccessLevelLabel(level: string): string {
