@@ -110,7 +110,7 @@ export default function DoctorsPage() {
                       <TableHeader>
                         <TableRow className="border-b border-border">
                           <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
+                          <TableHead className="hidden sm:table-cell">Email</TableHead>
                           <TableHead>Clinic</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -118,7 +118,7 @@ export default function DoctorsPage() {
                         {filtered.map((r) => (
                           <TableRow key={r.id} className="border-b border-border">
                             <TableCell className="font-medium">{r.name}</TableCell>
-                            <TableCell>{r.email}</TableCell>
+                            <TableCell className="hidden sm:table-cell">{r.email}</TableCell>
                             <TableCell>{r.clinicName}</TableCell>
                           </TableRow>
                         ))}

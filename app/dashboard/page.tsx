@@ -110,8 +110,8 @@ function PatientDashboard({ user }: { user: User }) {
                 <TableHeader>
                   <TableRow className="border-b border-border">
                     <TableHead className="font-semibold text-foreground">Record</TableHead>
-                    <TableHead className="font-semibold text-foreground">Type</TableHead>
-                    <TableHead className="font-semibold text-foreground">Doctor</TableHead>
+                    <TableHead className="font-semibold text-foreground hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="font-semibold text-foreground hidden md:table-cell">Doctor</TableHead>
                     <TableHead className="font-semibold text-foreground">Visit Date</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -124,8 +124,8 @@ function PatientDashboard({ user }: { user: User }) {
                           <span className="text-xs text-muted-foreground truncate">{r.title}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{r.recordType}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{r.doctorName || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{r.recordType}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{r.doctorName || '—'}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(r.visitDate).toLocaleDateString()}
                       </TableCell>
@@ -149,8 +149,8 @@ function PatientDashboard({ user }: { user: User }) {
               <TableHeader>
                 <TableRow className="border-b border-border">
                   <TableHead className="font-semibold text-foreground">Doctor</TableHead>
-                  <TableHead className="font-semibold text-foreground">Access Level</TableHead>
-                  <TableHead className="font-semibold text-foreground">Date</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden sm:table-cell">Access Level</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden sm:table-cell">Date</TableHead>
                   <TableHead className="font-semibold text-foreground">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,8 +165,8 @@ function PatientDashboard({ user }: { user: User }) {
                   recentConsents.map((c) => (
                     <TableRow key={c.id} className="border-b border-border hover:bg-muted/50">
                       <TableCell className="font-medium text-foreground">{c.grantedToName}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{getAccessLevelLabel(c.accessLevel)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{getAccessLevelLabel(c.accessLevel)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">
                         {new Date(c.grantedDate).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
@@ -314,8 +314,8 @@ function DoctorDashboard({ user }: { user: User }) {
               <TableHeader>
                 <TableRow className="border-b border-border">
                   <TableHead className="font-semibold text-foreground">Activity</TableHead>
-                  <TableHead className="font-semibold text-foreground">Type</TableHead>
-                  <TableHead className="font-semibold text-foreground">Detail</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden md:table-cell">Detail</TableHead>
                   <TableHead className="font-semibold text-foreground">Date</TableHead>
                   <TableHead className="font-semibold text-foreground">Status</TableHead>
                 </TableRow>
@@ -331,8 +331,8 @@ function DoctorDashboard({ user }: { user: User }) {
                   recentActivity.map((a, idx) => (
                     <TableRow key={idx} className="border-b border-border hover:bg-muted/50">
                       <TableCell className="font-medium text-foreground">{a.title}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm capitalize">{a.type}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{a.detail}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell capitalize">{a.type}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{a.detail}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(a.timestamp).toLocaleDateString()}
                       </TableCell>
@@ -511,8 +511,8 @@ function AdminDashboard({ user }: { user: User }) {
               <TableHeader>
                 <TableRow className="border-b border-border">
                   <TableHead className="font-semibold text-foreground">Activity</TableHead>
-                  <TableHead className="font-semibold text-foreground">Type</TableHead>
-                  <TableHead className="font-semibold text-foreground">Detail</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="font-semibold text-foreground hidden md:table-cell">Detail</TableHead>
                   <TableHead className="font-semibold text-foreground">Date</TableHead>
                   <TableHead className="font-semibold text-foreground">Status</TableHead>
                 </TableRow>
@@ -528,8 +528,8 @@ function AdminDashboard({ user }: { user: User }) {
                   recentActivity.map((a, idx) => (
                     <TableRow key={idx} className="border-b border-border hover:bg-muted/50">
                       <TableCell className="font-medium text-foreground">{a.title}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm capitalize">{a.type}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{a.detail}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell capitalize">{a.type}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{a.detail}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(a.timestamp).toLocaleDateString()}
                       </TableCell>

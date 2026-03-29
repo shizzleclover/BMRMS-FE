@@ -105,9 +105,9 @@ function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) 
                 <TableHeader>
                   <TableRow className="border-b border-border">
                     <TableHead className="font-semibold text-foreground">Name</TableHead>
-                    <TableHead className="font-semibold text-foreground">ID</TableHead>
-                    <TableHead className="font-semibold text-foreground">Contact</TableHead>
-                    <TableHead className="font-semibold text-foreground">Blood Type</TableHead>
+                    <TableHead className="font-semibold text-foreground hidden md:table-cell">ID</TableHead>
+                    <TableHead className="font-semibold text-foreground hidden sm:table-cell">Contact</TableHead>
+                    <TableHead className="font-semibold text-foreground hidden lg:table-cell">Blood Type</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
                     <TableHead className="font-semibold text-foreground">Sync</TableHead>
                     <TableHead className="text-right font-semibold text-foreground">Action</TableHead>
@@ -117,9 +117,9 @@ function PatientsContent({ userRole }: { userRole: string; clinicId?: string }) 
                   {patients.map((patient) => (
                     <TableRow key={patient.id} className="border-b border-border hover:bg-muted/50">
                       <TableCell className="font-medium text-foreground">{patient.name}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{patient.id}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{patient.email}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{patient.bloodType}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">{patient.id}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{patient.email}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">{patient.bloodType}</TableCell>
                       <TableCell>
                         <StatusBadge status={patient.status === 'active' ? 'active' : 'inactive'} />
                       </TableCell>
